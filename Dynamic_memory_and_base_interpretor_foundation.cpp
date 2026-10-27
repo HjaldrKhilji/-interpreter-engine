@@ -22,7 +22,7 @@ class dynamic_unit{
             members.push_back(dummy);
         }
         const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
-        }
+    }
 };
 
 
@@ -34,11 +34,11 @@ struct Storage_facility{
         template for (std::size_t i=0;auto Type: {^^Ts...})
         {
             auto name_of_member=std::format("{}_{}", std::meta::identifier_of(^^Type), i);
-            auto member_to_push;= std::meta::data_member_options{.name = name_of_member}; //i is to impose uniqueness and to make the name different than the name of the type.
-            members.push_back(std::meta::data_member_spec(Type, name));
+            auto member_to_push= std::meta::data_member_options{.name = name_of_member}; //i is to impose uniqueness and to make the name different than the name of the type.
+            members.push_back(std::meta::data_member_spec(Type, member_to_push));
             i++;
         }
-        std::meta::define_aggregate(^^Storage, member_specs);
+        std::meta::define_aggregate(^^Storage_facility, members);
     }
     template<typename T>
     T& get_value(){
