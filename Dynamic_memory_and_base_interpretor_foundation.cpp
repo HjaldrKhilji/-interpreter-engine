@@ -50,17 +50,6 @@ namespace storage{
         constexpr value_type operator[](size_t index) {
             return book_keeper[index];
         }
-        std::vector<std::meta::info> members;
-        consteval
-        {
-            template for (std::size_t i=0;auto Type: {^^Ts...})
-            {
-                auto name_of_member=std::format("{}_{}", std::meta::identifier_of(^^Type), i);
-                auto member_to_push= std::meta::data_member_options{.name = name_of_member}; //i is to impose uniqueness and to make the name different than the name of the type.
-                members.push_back(std::meta::data_member_spec(Type, member_to_push));
-                i++;
-            }
-        }
     };
 };
 namespace runtime{
@@ -87,8 +76,9 @@ namespace runtime{
             const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
         }
     };
+    template<typename... Ts>
     struct Runtime_storage_t{
-        std::vector<Dynamic_unit> all_storage;
+        std::vector<Dynamic_unit<Ts...>> all_storage;
     };
 };
 
