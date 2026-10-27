@@ -50,59 +50,48 @@ namespace storage{
         constexpr value_type operator[](size_t index) {
             return book_keeper[index];
         }
-    };
-};
-struct runtime{
-template<typename... Ts>
-class Dynamic_unit{
-    void *ptr;
-    std::size_t size;
-    enum class Tag_type
-    {
-        empty________________________ //making sure any internal buffer is big enough
-    };
-    consteval
-    {
-        auto dummy=^^Tag_type::empty;
-        auto name_of_dummy=  std::meta::identifier_of(dummy);
-        std::string name_of_dummy_temp= name_of_dummy;
         std::vector<std::meta::info> members;
-        template for (auto Type: {^^Ts...})
+        consteval
         {
-            auto name_of_member= std::meta::identifier_of(^^Type);
-            const_cast<std::string_view>(name_of_dummy)=name_of_member;
-            members.push_back(dummy);
+            template for (std::size_t i=0;auto Type: {^^Ts...})
+            {
+                auto name_of_member=std::format("{}_{}", std::meta::identifier_of(^^Type), i);
+                auto member_to_push= std::meta::data_member_options{.name = name_of_member}; //i is to impose uniqueness and to make the name different than the name of the type.
+                members.push_back(std::meta::data_member_spec(Type, member_to_push));
+                i++;
+            }
         }
-        const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
-    }
+    };
 };
-struct Runtime_storage_t{
-    std::vector<Dynamic_unit> all_storage;
-};
-}
-template<typename... Ts>
-struct Storage_facility{
-    consteval
-    {
-        std::vector<std::meta::info> members;//built in storage (supposed to be fast once C++ reflection magic start being optimized). It basically is the code tuples code, but except element is named and the names are so that the access wont require if statements.
-        template for (std::size_t i=0;auto Type: {^^Ts...})
+namespace runtime{
+    template<typename... Ts>
+    class Dynamic_unit{
+        void *ptr;
+        std::size_t size;
+        enum class Tag_type
         {
-            auto name_of_member=std::format("{}_{}", std::meta::identifier_of(^^Type), i);
-            auto member_to_push= std::meta::data_member_options{.name = name_of_member}; //i is to impose uniqueness and to make the name different than the name of the type.
-            members.push_back(std::meta::data_member_spec(Type, member_to_push));
-            i++;
+            empty________________________ //making sure any internal buffer is big enough
+        };
+        consteval
+        {
+            auto dummy=^^Tag_type::empty;
+            auto name_of_dummy=  std::meta::identifier_of(dummy);
+            std::string name_of_dummy_temp= name_of_dummy;
+            std::vector<std::meta::info> members;
+            template for (auto Type: {^^Ts...})
+            {
+                auto name_of_member= std::meta::identifier_of(^^Type);
+                const_cast<std::string_view>(name_of_dummy)=name_of_member;
+                members.push_back(dummy);
+            }
+            const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
         }
-        std::meta::define_aggregate(^^Storage_facility, members);
-    }
-
-    p4198r0::Reference_holding_arrays<typename ... Ts> indexed_references{};
-    
-    template<typename T>
-    T& get_value(){
-
-    }
-
+    };
+    struct Runtime_storage_t{
+        std::vector<Dynamic_unit> all_storage;
+    };
 };
+
 
 int main()
 {
