@@ -34,6 +34,7 @@ namespace storage{
     template<typename ... Types>
     struct runtime_indexed_tuples {
         std::tuple<Types...> data;
+        std::vector<std::meta::info> reflection;
         using value_type = typename get_variant_of_unique_ts<sizeof...(Types)
         - 1, Types...>::Variant_t;
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
@@ -44,6 +45,11 @@ namespace storage{
         book_keeper{
             std::apply([](auto&... args) {
                 return Book_keeping_t{args...};
+            }, data)
+        },
+        reflection{
+            std::apply([](auto&... args) {
+                return {^^args...};
             }, data)
         }
         {}
