@@ -69,9 +69,9 @@ namespace runtime{
             empty________________________ //making sure any internal buffer is big enough
         };
         consteval std::string construct_name(std::string type_name_1, std::string type_name_2){
-            retrun type_name_1+"_"+type_name_2;
+            return type_name_1+"_"+type_name_2;
         }
-        consteval std::vector<std::meta::info> construct_type_array(){
+        consteval std::vector<std::meta::info> construct_type_array(auto dummy, auto& name_of_dummy){
             std::vector<std::meta::info> members;
             auto types= std::to_array({^^Ts...});
             for(auto t_it=types.begin(); t_it<types.end(); t_it++) //t_it=test_iterator
@@ -92,7 +92,7 @@ namespace runtime{
             auto name_of_dummy=  std::meta::identifier_of(dummy);
             std::string name_of_dummy_temp= name_of_dummy;
 
-            std::meta::define_aggregate(^^MyAggregate, construct_type_array());
+            std::meta::define_aggregate(^^Dynamic_unit, construct_type_array(dummy, name_of_dummy));
             const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
         }
         void do_with_value(Dynamic_unit ){
