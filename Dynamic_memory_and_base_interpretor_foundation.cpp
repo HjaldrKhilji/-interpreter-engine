@@ -68,7 +68,7 @@ namespace runtime{
         enum class Single_tag_type
         {
             empty________________________ //making sure any internal buffer is big enough
-        }
+        };
         enum class Dual_Tag_type
         {
             empty________________________ //making sure any internal buffer is big enough
@@ -97,7 +97,7 @@ namespace runtime{
             List_t members;
             for (auto Type: {^^Ts...})
             {
-                auto name_of_member= std::meta::identifier_of(^^Type);
+                auto name_of_member= std::meta::identifier_of(Type);
                 auto name_of_dummy =std::meta::identifier_of(dummy);
                 const_cast<std::string_view>(name_of_dummy)=name_of_member;
                 members.push_back(dummy);
