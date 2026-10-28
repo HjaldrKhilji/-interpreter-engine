@@ -34,6 +34,7 @@ namespace storage{
     template<typename ... Types>
     struct runtime_indexed_tuples {
         std::tuple<Types...> data;
+        using List_t=std::array<std::meta::info, sizeof...(Types)>;
         List_t reflection;
         using value_type = typename get_variant_of_unique_ts<sizeof...(Types)
         - 1, Types...>::Variant_t;
@@ -62,19 +63,20 @@ namespace storage{
 namespace runtime{
     template<typename... Ts>
     class Dynamic_unit{
+        using List_t=std::array<std::meta::info, sizeof...(Ts)>;
         void *ptr;
-        std::size_t size;
-        enum class Single_tag_type{
+        enum class Single_tag_type
+        {
             empty________________________ //making sure any internal buffer is big enough
         }
         enum class Dual_Tag_type
         {
             empty________________________ //making sure any internal buffer is big enough
         };
+        Single_tag_type tag;
         consteval std::string construct_name(std::string type_name_1, std::string type_name_2){
             return type_name_1+type_name_2;
         }
-        using List_t=std::array<std::meta::info, sizeof...(Ts)>;
         consteval List_t construct_dual_type_list(auto dummy){
             List_t members;
             auto types= std::to_array({^^Ts...});
@@ -107,30 +109,30 @@ namespace runtime{
         }
         consteval void construct_single_tag(auto dummy){
             std::meta::define_aggregate(^^Single_tag_type, construct_single_type_list(dummy));
-
+            
         }
-
         consteval
         {
-            auto dummy=^^Tag_type::empty;
-            construct_dual_tag(dummy);
-            construct_single_tag(dummy);
+            construct_dual_tag(^^Dual_Tag_type::empty);
+            construct_single_tag(^^Single_tag_type::empty);
         }
         void do_with_value(Dynamic_unit lhs){
-
+            switch(tag){
+                
+            }
         }
     };
-
+    
     template<typename... Ts>
     struct Runtime_storage_t{
         std::vector<Dynamic_unit<Ts...>> all_storage;
     };
-
+    
 };
 
 
 int main()
 {
-
+    
     return 0;
 }
