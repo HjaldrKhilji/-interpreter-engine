@@ -109,7 +109,7 @@ namespace runtime{
         }
         consteval void construct_single_tag(auto dummy){
             std::meta::define_aggregate(^^Single_tag_type, construct_single_type_list(dummy));
-            
+
         }
         consteval
         {
@@ -117,22 +117,22 @@ namespace runtime{
             construct_single_tag(^^Single_tag_type::empty);
         }
         void do_with_value(Dynamic_unit lhs){
-            switch(tag){
-                
+            switch((tag>>1)^lhs.tag{
+                //now generate the combinations that you want to using the Dual_Tag_type stuff and std::meta::enumerators_of function.
             }
         }
     };
-    
+
     template<typename... Ts>
     struct Runtime_storage_t{
         std::vector<Dynamic_unit<Ts...>> all_storage;
     };
-    
+
 };
 
 
 int main()
 {
-    
+
     return 0;
 }
