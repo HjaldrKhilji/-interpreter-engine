@@ -34,7 +34,7 @@ namespace storage{
     template<typename ... Types>
     struct runtime_indexed_tuples {
         std::tuple<Types...> data;
-        std::vector<std::meta::info> reflection;
+        List_t reflection;
         using value_type = typename get_variant_of_unique_ts<sizeof...(Types)
         - 1, Types...>::Variant_t;
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
@@ -64,15 +64,19 @@ namespace runtime{
     class Dynamic_unit{
         void *ptr;
         std::size_t size;
-        enum class Tag_type
+        enum class Single_tag_type{
+            empty________________________ //making sure any internal buffer is big enough
+        }
+        enum class Dual_Tag_type
         {
             empty________________________ //making sure any internal buffer is big enough
         };
         consteval std::string construct_name(std::string type_name_1, std::string type_name_2){
-            return type_name_1+"_"+type_name_2;
+            return type_name_1+type_name_2;
         }
-        consteval std::vector<std::meta::info> construct_type_array(auto dummy, auto& name_of_dummy){
-            std::vector<std::meta::info> members;
+        using List_t=std::array<std::meta::info, sizeof...(Ts)>;
+        consteval List_t construct_dual_type_list(auto dummy, auto& name_of_dummy){
+            List_t members;
             auto types= std::to_array({^^Ts...});
             for(auto t_it=types.begin(); t_it<types.end(); t_it++) //t_it=test_iterator
             {
@@ -86,14 +90,33 @@ namespace runtime{
             }
             return members;
         }
+        consteval List_t construct_single_type_list(auto dummy, auto& name_of_dummy){
+            List_t members;
+            for (auto Type: {^^Ts...})
+            {
+                auto name_of_member= std::meta::identifier_of(^^Type);
+                const_cast<std::string_view>(name_of_dummy)=name_of_member;
+                members.push_back(dummy);
+            }
+            return members;
+        }
+        consteval void construct_dual_tag(auto dummy, auto& name_of_dummy){
+            std::meta::define_aggregate(^^Dual_Tag_type, construct_dual_type_list(dummy, name_of_dummy));
+        }
+        consteval void construct_single_tag(auto dummy, auto& name_of_dummy){
+            std::meta::define_aggregate(^^Single_tag_type, construct_type_list(dummy, ));
+
+        }
+
         consteval
         {
             auto dummy=^^Tag_type::empty;
             auto name_of_dummy=  std::meta::identifier_of(dummy);
             std::string name_of_dummy_temp= name_of_dummy;
-
-            std::meta::define_aggregate(^^Dynamic_unit, construct_type_array(dummy, name_of_dummy));
+            construct_dual_tag(dummy, name_of_dummy);
+            construct_single_tag(dummy, name_of_dummy);
             const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
+
         }
         void do_with_value(Dynamic_unit ){
 
