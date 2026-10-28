@@ -73,24 +73,30 @@ namespace runtime{
             auto name_of_dummy=  std::meta::identifier_of(dummy);
             std::string name_of_dummy_temp= name_of_dummy;
             std::vector<std::meta::info> members;
-            template for (auto Type: {^^Ts...})
+            auto types= std::to_array({^^Ts...});
+            for(auto t_it=types.begin(); t_it<types.end(); t_it++)
             {
-                auto name_of_member= std::meta::identifier_of(^^Type);
+                auto name_of_member= std::meta::identifier_of(*t_it);
                 const_cast<std::string_view>(name_of_dummy)=name_of_member;
                 members.push_back(dummy);
             }
             const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
         }
+        void do_with_value(Dynamic_unit ){
+            
+        }
     };
+    
     template<typename... Ts>
     struct Runtime_storage_t{
         std::vector<Dynamic_unit<Ts...>> all_storage;
     };
+    
 };
 
 
 int main()
 {
-
+    
     return 0;
 }
