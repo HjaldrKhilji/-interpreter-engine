@@ -75,9 +75,10 @@ namespace runtime{
             return type_name_1+type_name_2;
         }
         using List_t=std::array<std::meta::info, sizeof...(Ts)>;
-        consteval List_t construct_dual_type_list(auto dummy, auto& name_of_dummy){
+        consteval List_t construct_dual_type_list(auto dummy){
             List_t members;
             auto types= std::to_array({^^Ts...});
+            auto name_of_dummy =std::meta::identifier_of(dummy);
             for(auto t_it=types.begin(); t_it<types.end(); t_it++) //t_it=test_iterator
             {
                 auto name_of_member= std::meta::identifier_of(*t_it);
@@ -90,35 +91,32 @@ namespace runtime{
             }
             return members;
         }
-        consteval List_t construct_single_type_list(auto dummy, auto& name_of_dummy){
+        consteval List_t construct_single_type_list(auto dummy){
             List_t members;
             for (auto Type: {^^Ts...})
             {
                 auto name_of_member= std::meta::identifier_of(^^Type);
+                auto name_of_dummy =std::meta::identifier_of(dummy);
                 const_cast<std::string_view>(name_of_dummy)=name_of_member;
                 members.push_back(dummy);
             }
             return members;
         }
-        consteval void construct_dual_tag(auto dummy, auto& name_of_dummy){
-            std::meta::define_aggregate(^^Dual_Tag_type, construct_dual_type_list(dummy, name_of_dummy));
+        consteval void construct_dual_tag(auto dummy){
+            std::meta::define_aggregate(^^Dual_Tag_type, construct_dual_type_list(dummy));
         }
-        consteval void construct_single_tag(auto dummy, auto& name_of_dummy){
-            std::meta::define_aggregate(^^Single_tag_type, construct_type_list(dummy, ));
+        consteval void construct_single_tag(auto dummy){
+            std::meta::define_aggregate(^^Single_tag_type, construct_single_type_list(dummy));
 
         }
 
         consteval
         {
             auto dummy=^^Tag_type::empty;
-            auto name_of_dummy=  std::meta::identifier_of(dummy);
-            std::string name_of_dummy_temp= name_of_dummy;
-            construct_dual_tag(dummy, name_of_dummy);
-            construct_single_tag(dummy, name_of_dummy);
-            const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
-
+            construct_dual_tag(dummy);
+            construct_single_tag(dummy);
         }
-        void do_with_value(Dynamic_unit ){
+        void do_with_value(Dynamic_unit lhs){
 
         }
     };
