@@ -117,7 +117,7 @@ namespace runtime{
             construct_single_tag(^^Single_tag_type::empty);
         }
         void do_with_value(Dynamic_unit lhs){
-            switch((tag>>1)^lhs.tag{
+            switch((tag>>1)^lhs.tag){
                 //now generate the combinations that you want to using the Dual_Tag_type stuff and std::meta::enumerators_of function.
             }
         }
