@@ -9,8 +9,7 @@
 namespace storage{
     template<template<std::size_t N, typename...> class F, std::size_t N,
     typename ... Args>
-    using Delay = F<N, Args...>;//credits to bjarne stroustrup's c++ book from
-    //2013 for this one
+    using Delay = F<N, Args...>;
     template< std::size_t N, typename Head, typename ...Types>
     struct get_variant_of_unique_ts :
     std::conditional_t<
@@ -73,11 +72,12 @@ namespace runtime{
         {
             empty________________________ //making sure any internal buffer is big enough
         };
+        std::array<Dual_Tag_type,sizeof...(Ts)> all_dual_tag_enums;
         Single_tag_type tag;
-        consteval std::string construct_name(std::string type_name_1, std::string type_name_2){
+        consteval static std::string construct_name(std::string type_name_1, std::string type_name_2){
             return type_name_1+type_name_2;
         }
-        consteval List_t construct_dual_type_list(auto dummy){
+        consteval static List_t construct_dual_type_list(auto dummy){
             List_t members;
             auto types= std::to_array({^^Ts...});
             auto name_of_dummy =std::meta::identifier_of(dummy);
@@ -93,7 +93,7 @@ namespace runtime{
             }
             return members;
         }
-        consteval List_t construct_single_type_list(auto dummy){
+        consteval static List_t construct_single_type_list(auto dummy){
             List_t members;
             for (auto Type: {^^Ts...})
             {
@@ -104,21 +104,31 @@ namespace runtime{
             }
             return members;
         }
-        consteval void construct_dual_tag(auto dummy){
+        consteval static void construct_dual_tag(auto dummy){
             std::meta::define_aggregate(^^Dual_Tag_type, construct_dual_type_list(dummy));
         }
-        consteval void construct_single_tag(auto dummy){
+        consteval static void construct_single_tag(auto dummy){
             std::meta::define_aggregate(^^Single_tag_type, construct_single_type_list(dummy));
 
+        }
+        consteval void push_all_enumerators(){
+            constexpr static auto enumerators = std::define_static_array(enumerators_of(^^Dual_Tag_type));
+            template for (constexpr auto enumerator : enumerators)
+            {
+                all_dual_tag_enums.push(^^enumerator);
+            }
         }
         consteval
         {
             construct_dual_tag(^^Dual_Tag_type::empty);
             construct_single_tag(^^Single_tag_type::empty);
+            push_all_enumerators();
         }
         void do_with_value(Dynamic_unit lhs){
-            switch((tag>>1)^lhs.tag){
-                //now generate the combinations that you want to using the Dual_Tag_type stuff and std::meta::enumerators_of function.
+            template for(auto enumerator: all_dual_tag_enums){
+                if(enumerator==((tag>>1)^lhs.tag) ){
+                    //todo (the whole operation is here)
+                }
             }
         }
     };
