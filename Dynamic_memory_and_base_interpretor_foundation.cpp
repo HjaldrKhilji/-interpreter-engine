@@ -58,6 +58,7 @@ namespace storage{
         }
     };
 };
+
 namespace runtime{
     template<typename... Ts>
     class Dynamic_unit{
@@ -67,44 +68,48 @@ namespace runtime{
         {
             empty________________________ //making sure any internal buffer is big enough
         };
-        consteval
-        {
-            auto dummy=^^Tag_type::empty;
-            auto name_of_dummy=  std::meta::identifier_of(dummy);
-            std::string name_of_dummy_temp= name_of_dummy;
+        consteval std::string construct_name(std::string type_name_1, std::string type_name_2){
+            retrun type_name_1+"_"+type_name_2;
+        }
+        consteval std::vector<std::meta::info> construct_type_array(){
             std::vector<std::meta::info> members;
             auto types= std::to_array({^^Ts...});
             for(auto t_it=types.begin(); t_it<types.end(); t_it++) //t_it=test_iterator
             {
                 auto name_of_member= std::meta::identifier_of(*t_it);
                 for(auto n_t_it=t_it; n_t_it<types.end(); n_t_it++){
-                if(n_t_it!=t_it){
-                auto tmp=name_of_member;
-                name_of_member=name_of_member+std::meta::identifier_of(*n_t_it);
-                const_cast<std::string_view>(name_of_dummy)=name_of_member;
-                members.push_back(dummy);
-                name_of_member=tmp;
-                }
+                    if(n_t_it!=t_it){
+                        const_cast<std::string_view>(name_of_dummy)=construct_name(name_of_member, std::meta::identifier_of(n_t_it));
+                        members.push_back(dummy);
+                    }
                 }
             }
-            std::meta::define_aggregate(^^MyAggregate, members);
+            return members;
+        }
+        consteval
+        {
+            auto dummy=^^Tag_type::empty;
+            auto name_of_dummy=  std::meta::identifier_of(dummy);
+            std::string name_of_dummy_temp= name_of_dummy;
+
+            std::meta::define_aggregate(^^MyAggregate, construct_type_array());
             const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
         }
         void do_with_value(Dynamic_unit ){
-            
+
         }
     };
-    
+
     template<typename... Ts>
     struct Runtime_storage_t{
         std::vector<Dynamic_unit<Ts...>> all_storage;
     };
-    
+
 };
 
 
 int main()
 {
-    
+
     return 0;
 }
