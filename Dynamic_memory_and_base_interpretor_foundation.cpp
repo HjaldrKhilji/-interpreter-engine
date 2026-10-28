@@ -74,12 +74,20 @@ namespace runtime{
             std::string name_of_dummy_temp= name_of_dummy;
             std::vector<std::meta::info> members;
             auto types= std::to_array({^^Ts...});
-            for(auto t_it=types.begin(); t_it<types.end(); t_it++)
+            for(auto t_it=types.begin(); t_it<types.end(); t_it++) //t_it=test_iterator
             {
                 auto name_of_member= std::meta::identifier_of(*t_it);
+                for(auto n_t_it=t_it; n_t_it<types.end(); n_t_it++){
+                if(n_t_it!=t_it){
+                auto tmp=name_of_member;
+                name_of_member=name_of_member+std::meta::identifier_of(*n_t_it);
                 const_cast<std::string_view>(name_of_dummy)=name_of_member;
                 members.push_back(dummy);
+                name_of_member=tmp;
+                }
+                }
             }
+            std::meta::define_aggregate(^^MyAggregate, members);
             const_cast<std::string_view>(name_of_dummy)=name_of_dummy_temp;
         }
         void do_with_value(Dynamic_unit ){
