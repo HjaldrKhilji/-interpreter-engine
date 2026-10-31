@@ -64,7 +64,13 @@ namespace storage{
 namespace runtime{
     template<typename... Ts>
     class Dynamic_unit{
-        std::vector<std::string> tag_name_buffer;
+
+        std::array<std::string, sizeof...(Ts)+(sizeof...(Ts)*sizeof...(Ts))> tag_name_buffer;
+        std::size_t index=0;
+        constexpr std::string& get_buffer_slot(){
+            index++;
+            return tag_name_buffer[index-1];
+        }
         using List_t=std::array<std::meta::info, sizeof...(Ts)>;
         void *ptr;
         enum class Single_tag_type
@@ -75,7 +81,7 @@ namespace runtime{
         {
             empty;
         };
-        std::array<Dual_Tag_type,sizeof...(Ts)> all_dual_tag_enums;
+        std::array<Dual_Tag_type,sizeof...(Ts)> all_dual_tag_enums;//for the template for loop in do_with_value
         Single_tag_type tag;
         consteval static std::string construct_name(std::string type_name_1, std::string type_name_2){
             return type_name_1+type_name_2;
@@ -88,8 +94,8 @@ namespace runtime{
             {
                 auto name_of_member= std::meta::identifier_of(Type);
                 for(auto N_type: {^^Ts...}){
-                    tag_name_buffer.push_back(construct_name(name_of_member, std::meta::identifier_of(N_type)));
-                    const_cast<std::string_view>(name_of_dummy)= tag_name_buffer.back();
+                    get_buffer_slot()=construct_name(name_of_member, std::meta::identifier_of(N_type));
+                    const_cast<std::string_view>(name_of_dummy)= get_buffer_slot();
                     members.push_back(dummy);
                 }
             }
@@ -101,8 +107,8 @@ namespace runtime{
             {
                 auto name_of_member= std::meta::identifier_of(Type);
                 auto name_of_dummy =std::meta::identifier_of(dummy);
-                tag_name_buffer.push_back(name_of_member)
-                const_cast<std::string_view>(name_of_dummy)=tag_name_buffer.back();
+                get_buffer_slot()=name_of_member;
+                const_cast<std::string_view>(name_of_dummy)=get_buffer_slot();
                 members.push_back(dummy);
             }
             return members;
@@ -129,7 +135,7 @@ namespace runtime{
         }
         void do_with_value(Dynamic_unit lhs, std::size_t op_index){
             template for(auto enumerator: all_dual_tag_enums){
-                if(enumerator==((tag>>1)^lhs.tag) ){
+                if(enumerator==((tag>>1)^lhs.tag) ){ //cryptographers say that all they do is to use XOR, hence I used it to flatten stuff up for the cache and branch predictor's sake.
 
                 }
             }
