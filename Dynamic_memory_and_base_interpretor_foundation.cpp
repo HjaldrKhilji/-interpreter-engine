@@ -64,15 +64,16 @@ namespace storage{
 namespace runtime{
     template<typename... Ts>
     class Dynamic_unit{
+        std::vector<std::string> tag_name_buffer;
         using List_t=std::array<std::meta::info, sizeof...(Ts)>;
         void *ptr;
         enum class Single_tag_type
         {
-            empty________________________ //making sure any internal buffer is big enough
+            empty;
         };
         enum class Dual_Tag_type
         {
-            empty________________________ //making sure any internal buffer is big enough
+            empty;
         };
         std::array<Dual_Tag_type,sizeof...(Ts)> all_dual_tag_enums;
         Single_tag_type tag;
@@ -83,14 +84,13 @@ namespace runtime{
             List_t members;
             auto types= std::to_array({^^Ts...});
             auto name_of_dummy =std::meta::identifier_of(dummy);
-            for(auto t_it=types.begin(); t_it<types.end(); t_it++) //t_it=test_iterator
+            for(auto Type: {^^Ts...}) //t_it=test_iterator
             {
-                auto name_of_member= std::meta::identifier_of(*t_it);
-                for(auto n_t_it=t_it; n_t_it<types.end(); n_t_it++){
-                    if(n_t_it!=t_it){
-                        const_cast<std::string_view>(name_of_dummy)=construct_name(name_of_member, std::meta::identifier_of(n_t_it));
-                        members.push_back(dummy);
-                    }
+                auto name_of_member= std::meta::identifier_of(Type);
+                for(auto N_type: {^^Ts...}){
+                    tag_name_buffer.push_back(construct_name(name_of_member, std::meta::identifier_of(N_type)));
+                    const_cast<std::string_view>(name_of_dummy)= tag_name_buffer.back();
+                    members.push_back(dummy);
                 }
             }
             return members;
@@ -101,7 +101,8 @@ namespace runtime{
             {
                 auto name_of_member= std::meta::identifier_of(Type);
                 auto name_of_dummy =std::meta::identifier_of(dummy);
-                const_cast<std::string_view>(name_of_dummy)=name_of_member;
+                tag_name_buffer.push_back(name_of_member)
+                const_cast<std::string_view>(name_of_dummy)=tag_name_buffer.back();
                 members.push_back(dummy);
             }
             return members;
@@ -126,10 +127,10 @@ namespace runtime{
             construct_single_tag(^^Single_tag_type::empty);
             push_all_enumerators();
         }
-        void do_with_value(Dynamic_unit lhs){
+        void do_with_value(Dynamic_unit lhs, std::size_t op_index){
             template for(auto enumerator: all_dual_tag_enums){
                 if(enumerator==((tag>>1)^lhs.tag) ){
-                    //todo (the whole operation is here)
+
                 }
             }
         }
