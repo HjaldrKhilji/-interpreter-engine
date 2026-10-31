@@ -24,6 +24,10 @@ namespace storage{
         Delay<get_variant_of_unique_ts, N - 1, Head, Types... >
         >;
         using Variant_t = typename intermediate::Variant_t;
+        using List_t=std::array<std::meta::info, sizeof...(Types)>;
+        static constexpr List_t return_type_list(){
+            return List_t{^^T...};
+        }
     };
     template<typename Head, typename... Types>
     struct get_variant_of_unique_ts<0, Head, Types...>
@@ -33,24 +37,22 @@ namespace storage{
     template<typename ... Types>
     struct runtime_indexed_tuples {
         std::tuple<Types...> data;
-        using List_t=std::array<std::meta::info, sizeof...(Types)>;
-        List_t reflection;
-        using value_type = typename get_variant_of_unique_ts<sizeof...(Types)
-        - 1, Types...>::Variant_t;
+        using type_folder=typename get_variant_of_unique_ts<sizeof...(Types)
+        - 1, Types...>;
+        type_folder::List_t type_reflection;
+        using value_type = type_folder::Variant_t;
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
         Book_keeping_t book_keeper;
         template<typename... Types_>
         constexpr runtime_indexed_tuples(Types_&&... b) :
-        data{ std::make_tuple(std::forward<Types_>(b)...) },
+        data{ std::tuple(std::forward<Types_>(b)...) },
         book_keeper{
             std::apply([](auto&... args) {
                 return Book_keeping_t{args...};
             }, data)
         },
-        reflection{
-            std::apply([](auto&... args) {
-                return {^^args...};
-            }, data)
+        type_reflection{
+            type_folder::return_type_list();
         }
         {}
         constexpr value_type operator[](size_t index) {
