@@ -5,7 +5,21 @@
 #include <functional>
 #include <array>
 #include<utility>
+#include <algorithm>
 //runtime_indexed_tuples( https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf )will be used here to provide fixed size heterogenous lists(for faster indexing), though as you will see, some aspects have been modified:
+namespace look_up_namespace{
+    template <typename Type>
+    struct functions_set(){
+        static inline constexpr std::vector all{std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked())};
+        std::meta::info get_at_index(std::size_t index){
+        auto result=all[index];
+        if(std::meta::is_public(result) && std::meta::is_function(result)){
+            throw std::string{"object, not valid function"};
+        }
+        return result;
+        }
+    };
+};
 namespace storage{
     template<template<std::size_t N, typename...> class F, std::size_t N,
     typename ... Args>
@@ -36,7 +50,7 @@ namespace storage{
             return List_t{^^Head, ^^Types...};
         }
     };
-    template<typename ... Types>
+    template<typename dynamic_t, typename ... Types>
     struct runtime_indexed_tuples {
         std::tuple<Types...> data;
         using type_folder=get_variant_of_unique_ts<sizeof...(Types)
@@ -44,22 +58,56 @@ namespace storage{
         type_folder::List_t type_reflections;//dosent include duplicates
         using value_type = type_folder::Variant_t;
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
+        using Book_keeping_map_t= std::flat_map<std::string, value_type, std::less<value_type>, std::array<std::string>, std::array<value_type> >;
         Book_keeping_t book_keeper;
+        Book_keeping_map_t book_keeper_map;
+        std::vector<value_type> runtime_book_keeping{};
+        std::flat_map<std::string, value_type> runtime_book_keeper_map{};
+        using dynamic_storage_type=std::vector<dynamic_t>;
+        dynamic_storage_type dynamic_set{};
         template<typename... Types_>
-        constexpr runtime_indexed_tuples(Types_&&... b) :
+        constexpr runtime_indexed_tuples(Book_keeping_map_t& map, Types_&&... b) :
         data{ std::tuple(std::forward<Types_>(b)...) },
         book_keeper{
-            std::apply([](auto&... args) {
+            std::apply([](dynamic_t, auto&... args) {
                 return Book_keeping_t{args...};
             }, data)
         },
         type_reflections{
             type_folder::return_type_list()
+        },
+        book_keeper_map{
+            map
         }
-        {}
+        {
+            //dont want to rely on constructor order since bjarne stroustrup book says so
+            std::insert_range(runtime_book_keeping.begin(), book_keeper);
+            std::insert_range(runtime_book_keeper_map.begin(), book_keeper_map);
+        }
         constexpr value_type operator[](size_t index) {
             return book_keeper[index];
         }
+        void call_func(std::size_t obj_index, std::size_t func_index){
+            std::visit(
+                [](auto arg){
+                            auto ptr_to_mem_func= look_up_namespace::functions_set<decltype(arg)>::get_at_index(func_index);
+                            (arg.*ptr_to_mem_func)();
+                },
+                runtime_book_keeping[obj_index]
+            );
+        }
+        void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index){
+            std::visit(
+                [](auto arg, auto arg_2){
+                    auto ptr_to_mem_func= look_up_namespace::functions_set<decltype(arg)>::get_at_index(func_index);
+                    (arg.*ptr_to_mem_func)(arg_2);
+                },
+                runtime_book_keeping[obj_index],
+                obj_2_index
+            );
+        }
+
+
     };
 };
 
