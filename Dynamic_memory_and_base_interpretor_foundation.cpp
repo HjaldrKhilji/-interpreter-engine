@@ -10,12 +10,10 @@
 namespace look_up_namespace{
     template <typename Type>
     struct functions_set(){
-        static inline constexpr std::vector all{std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked())};
-        std::meta::info get_at_index(std::size_t index){
+        static inline constexpr std::vector<std::meta::info> all{std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked())};
+        constexpr std::meta::info get_at_index(std::size_t index){
         auto result=all[index];
-        if(std::meta::is_public(result) && std::meta::is_function(result)){
-            throw std::string{"object, not valid function"};
-        }
+        static_assert( !( std::meta::is_public(result) && std::meta::is_function(result) ) ,"object, not valid function");
         return result;
         }
     };
@@ -90,20 +88,21 @@ namespace storage{
         void call_func(std::size_t obj_index, std::size_t func_index){
             std::visit(
                 [](auto arg){
-                            auto ptr_to_mem_func= look_up_namespace::functions_set<decltype(arg)>::get_at_index(func_index);
-                            (arg.*ptr_to_mem_func)();
+                            //to be fixed by using a template for loop:
+                            auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(func_index):];
+                            (*arg.*ptr_to_mem_func)();
                 },
-                runtime_book_keeping[obj_index]
+                runtime_book_keeping.at(obj_index)
             );
         }
         void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index){
             std::visit(
                 [](auto arg, auto arg_2){
                     auto ptr_to_mem_func= look_up_namespace::functions_set<decltype(arg)>::get_at_index(func_index);
-                    (arg.*ptr_to_mem_func)(arg_2);
+                    (*arg.*ptr_to_mem_func)(*arg_2);
                 },
-                runtime_book_keeping[obj_index],
-                obj_2_index
+                runtime_book_keeping.at(obj_index),
+                runtime_book_keeping.at(obj_2_index)
             );
         }
 
