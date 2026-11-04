@@ -7,7 +7,7 @@
 #include <utility>
 #include <algorithm>
 #include <flat_map>
-//revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf )
+//revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace{
     template <typename Type>
     struct functions_set{
