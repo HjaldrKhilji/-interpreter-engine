@@ -7,7 +7,7 @@
 #include <utility>
 #include <algorithm>
 #include <flat_map>
-//dynamic_indexed_tuples( https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf )will be used here to provide fixed size heterogenous lists(for faster indexing), though as you will see, some aspects have been modified:
+//revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf )
 namespace look_up_namespace{
     template <typename Type>
     struct functions_set{
@@ -19,8 +19,7 @@ namespace look_up_namespace{
                 }
                 index++;
             }
-            //runs if the functions didnt return:
-            throw std::string (true, "out of bound compile time access to look_up_namespace::functions_set::all vector");
+            throw std::out_of_range{"out of bound compile time access to look_up_namespace::functions_set::all vector"};
         }
     };
 };
@@ -56,7 +55,7 @@ namespace storage{
         constexpr static std::size_t number_of_types=1+sizeof...(Types);
     };
     template<typename dynamic_t, typename ... Types>
-    struct Runtime_engine {
+    struct runtime_indexed_tuples {
         std::tuple<Types...> data;
         using type_folder=get_variant_of_unique_ts<sizeof...(Types)
         - 1, Types...>;//dosent include duplicates
@@ -71,7 +70,7 @@ namespace storage{
         using dynamic_storage_type=std::vector<dynamic_t>;
         dynamic_storage_type dynamic_set{};
         template<typename... Types_>
-        constexpr Runtime_engine(Book_keeping_map_t& map, Types_&&... b) :
+        constexpr runtime_indexed_tuples(Book_keeping_map_t& map, Types_&&... b) :
         data{ std::tuple(std::forward<Types_>(b)...) },
         book_keeper{
             std::apply([](dynamic_t, auto&... args) {
@@ -96,7 +95,7 @@ namespace storage{
     private:
         template<typename T>
         void call_func_impl(T arg, std::size_t func_index){
-            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Types, std::meta::access_context::unchecked()) ){
+            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()) ){
                 if(index==func_index){
                     auto ptr_to_mem_func= elem;
                     (arg.*ptr_to_mem_func)();
@@ -104,10 +103,11 @@ namespace storage{
                 }
                 index++;
             }
+            throw std::out_of_range{"function index out of range in operation"};
         }
         template<typename T, typename T2>
         void call_func_impl(T arg, T2 arg_2, std::size_t func_index){
-            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Types, std::meta::access_context::unchecked()) ){
+            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()) ){
                 if(index==func_index){
                     auto ptr_to_mem_func= elem;
                     (arg.*ptr_to_mem_func)(arg_2);
@@ -115,20 +115,24 @@ namespace storage{
                 }
                 index++;
             }
+            throw std::out_of_range{"function index out of range in binary operation"};
         }
     public:
-        constexpr value_type operator[](size_t index) {
+        constexpr value_type get_at_index(std::size_t index) {
             return book_keeper.at(index);
         }
-        constexpr void get_index_from_map(std::string& name){
+        constexpr value_type get_dynamic_at_index(std::size_t index) {
+            return dynamic_book_keeping.at(index);
+        }
+        constexpr std::size_t get_index_from_map(std::string& name){
             return book_keeper_map.at(name);
         }
-        constexpr void get_dynamic_index_from_map(std::string& name){
+        constexpr std::size_t get_dynamic_index_from_map(std::string& name){
             return dynamic_book_keeper_map.at(name);
         }
         constexpr void call_func(std::size_t obj_index, std::size_t func_index){
             std::visit(
-                [](auto arg){
+                [func_index](auto arg){
                     call_func_impl(*arg, func_index);
                 },
                 dynamic_book_keeping.at(obj_index)
@@ -137,7 +141,7 @@ namespace storage{
 
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index){
             std::visit(
-                [](auto arg, auto arg_2){
+                [func_index](auto arg, auto arg_2){
                     call_func_impl(*arg, *arg_2, func_index);
                 },
                 dynamic_book_keeping.at(obj_index),
@@ -146,7 +150,7 @@ namespace storage{
         }
         constexpr void call_func(std::size_t obj_index, std::string& func_index){
             std::visit(
-                [](auto arg){
+                [func_index](auto arg){
                     call_func_impl(*arg, look_up_namespace::functions_set<decltype(arg)>::get_index(func_index));
                 },
                 dynamic_book_keeping.at(obj_index)
@@ -155,7 +159,7 @@ namespace storage{
 
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::string& func_index){
             std::visit(
-                [](auto arg, auto arg_2){
+                [func_index](auto arg, auto arg_2){
                     call_func_impl(*arg, *arg_2, look_up_namespace::functions_set<decltype(arg)>::get_index(func_index));
                 },
                 dynamic_book_keeping.at(obj_index),
