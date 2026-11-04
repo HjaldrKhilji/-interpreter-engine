@@ -61,11 +61,12 @@ namespace storage{
         - 1, Types...>;//dosent include duplicates
         type_folder::List_t type_reflections;
         using value_type = type_folder::Variant_t;
+        using dynamic_value_t= dynamic_t;
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
         using Book_keeping_map_t= std::flat_map<std::string, std::size_t, std::less<std::size_t>, std::array<std::string, type_folder::number_of_types>, std::array<std::size_t, type_folder::number_of_types> >;
         Book_keeping_t book_keeper;
         Book_keeping_map_t book_keeper_map;
-        std::vector<value_type> dynamic_book_keeping{};
+        std::vector<dynamic_t> dynamic_book_keeping{};
         std::flat_map<std::string, std::size_t> dynamic_book_keeper_map{};
         using dynamic_storage_type=std::vector<dynamic_t>;
         dynamic_storage_type dynamic_set{};
@@ -78,7 +79,7 @@ namespace storage{
             }, data)
         },
         dynamic_book_keeping{
-            book_keeper
+            (requires(value_type a){dynamic_t{a};})? book_keeper: std::vector<dynamic_t> {} //is the dynamic_t passed by user constructable by the value_type, if not then use make it be empty.
         },
         dynamic_book_keeper_map{
             book_keeper_map
