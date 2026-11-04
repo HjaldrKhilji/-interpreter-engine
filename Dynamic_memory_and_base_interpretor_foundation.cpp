@@ -16,6 +16,14 @@ namespace look_up_namespace{
         static_assert( !( std::meta::is_public(result) && std::meta::is_function(result) ) ,"object, not valid function");
         return result;
         }
+        constexpr std::size_t get_index(std::string& name){
+            template for(std::size index=0; auto elem: all){
+                if(std::meta::identifier_of(elem)==name){
+                    return index;
+                }
+                index++;
+            }
+        }
     };
 };
 namespace storage{
@@ -56,11 +64,11 @@ namespace storage{
         type_folder::List_t type_reflections;
         using value_type = type_folder::Variant_t;
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
-        using Book_keeping_map_t= std::flat_map<std::string, value_type, std::less<value_type>, std::array<std::string>, std::array<value_type> >;
+        using Book_keeping_map_t= std::flat_map<std::string, std::size_t, std::less<std::size_t>, std::array<std::string>, std::array<std::size_t> >;
         Book_keeping_t book_keeper;
         Book_keeping_map_t book_keeper_map;
         std::vector<value_type> runtime_book_keeping{};
-        std::flat_map<std::string, value_type> runtime_book_keeper_map{};
+        std::flat_map<std::string, std::size_t> runtime_book_keeper_map{};
         using dynamic_storage_type=std::vector<dynamic_t>;
         dynamic_storage_type dynamic_set{};
         template<typename... Types_>
@@ -85,43 +93,76 @@ namespace storage{
         constexpr value_type operator[](size_t index) {
             return book_keeper[index];
         }
+        void get_index(std::string& name){
+            return runtime_book_keeper_map[name];
+        }
+        template<typename T>
+        void call_func_impl(T arg, std::size_t func_index){
+            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
+                if(index==func_index){
+                    auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(index):];
+                    (arg.*ptr_to_mem_func)();
+                    break;
+                }
+                index++;
+            }
+        }
+        template<typename T, typename T2>
+        void call_func_impl(T arg, T2 arg_2, std::size_t func_index){
+            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
+                if(index==func_index){
+                    auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(index):];
+                    (arg.*ptr_to_mem_func)(arg_2);
+                    break;
+                }
+                index++;
+            }
+        }
         void call_func(std::size_t obj_index, std::size_t func_index){
             std::visit(
                 [](auto arg){
-                            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
-                                if(index==func_index){
-                                    auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(index):];
-                                    (*arg.*ptr_to_mem_func)();
-                                }
-                                index++;
-                            }
+                    call_func_impl(*arg, func_index);
                 },
                 runtime_book_keeping.at(obj_index)
             );
         }
+
         void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index){
             std::visit(
                 [](auto arg, auto arg_2){
-                    template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
-                        if(index==func_index){
-                            auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(index):];
-                            (*arg.*ptr_to_mem_func)(*arg_2);
-                        }
-                        index++;
-                    }
+                    call_func_impl(*arg, *arg_2, func_index);
                 },
                 runtime_book_keeping.at(obj_index),
                 runtime_book_keeping.at(obj_2_index)
             );
         }
-        void add_new_obj(std::string init_string,std::size_t type_index, std::string key){
+        void call_func(std::size_t obj_index, std::string& func_index){
+            std::visit(
+                [](auto arg){
+                    call_func_impl(*arg, look_up_namespace::functions_set<decltype(arg)>::get_index(func_index));
+                },
+                runtime_book_keeping.at(obj_index)
+            );
+        }
+
+        void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::string& func_index){
+            std::visit(
+                [](auto arg, auto arg_2){
+                    call_func_impl(*arg, *arg_2, look_up_namespace::functions_set<decltype(arg)>::get_index(func_index));
+                },
+                runtime_book_keeping.at(obj_index),
+                runtime_book_keeping.at(obj_2_index)
+            );
+        }
+        void add_new_obj(std::iostream& input_stream,std::size_t type_index, std::string& key){
             template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
                 if(index==type_index){
-                    auto object=new [:type_reflections.at(index):](init_string);
+                    auto object=new [:type_reflections.at(index):](input_stream);
                     runtime_book_keeping.push_back(value_type{object});
                     if(key!=""){
-                        runtime_book_keeper_map[key]=runtime_book_keeping.back();
+                        runtime_book_keeper_map[key]=runtime_book_keeping.size()-1;
                     }
+                    break;
                 }
                 index++;
             }
