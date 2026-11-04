@@ -167,7 +167,7 @@ namespace storage{
             );
         }
         constexpr void add_new_obj(std::iostream& input_stream,std::size_t type_index, std::string& key){
-            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
+            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(type_reflections, std::meta::access_context::unchecked()) ){
                 if(index==type_index){
                     auto object=new [:type_reflections.at(index):](input_stream);
                     dynamic_book_keeping.push_back(value_type{object});
