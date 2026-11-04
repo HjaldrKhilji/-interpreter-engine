@@ -88,9 +88,13 @@ namespace storage{
         void call_func(std::size_t obj_index, std::size_t func_index){
             std::visit(
                 [](auto arg){
-                            //to be fixed by using a template for loop:
-                            auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(func_index):];
-                            (*arg.*ptr_to_mem_func)();
+                            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
+                                if(index==func_index){
+                                    auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(index):];
+                                    (*arg.*ptr_to_mem_func)();
+                                }
+                                index++;
+                            }
                 },
                 runtime_book_keeping.at(obj_index)
             );
@@ -98,8 +102,13 @@ namespace storage{
         void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index){
             std::visit(
                 [](auto arg, auto arg_2){
-                    auto ptr_to_mem_func= look_up_namespace::functions_set<decltype(arg)>::get_at_index(func_index);
-                    (*arg.*ptr_to_mem_func)(*arg_2);
+                    template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
+                        if(index==func_index){
+                            auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(index):];
+                            (*arg.*ptr_to_mem_func)(*arg_2);
+                        }
+                        index++;
+                    }
                 },
                 runtime_book_keeping.at(obj_index),
                 runtime_book_keeping.at(obj_2_index)
