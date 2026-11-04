@@ -12,11 +12,6 @@ namespace look_up_namespace{
     template <typename Type>
     struct functions_set{
         static inline constexpr std::vector<std::meta::info> all{std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked())};
-        constexpr std::meta::info get_at_index(std::size_t index){
-            constexpr auto result=all[index];
-            static_assert( !( std::meta::is_public(result) && std::meta::is_function(result) ) ,"object, not valid function");
-            return result;
-        }
         constexpr std::size_t get_index(std::string& name){
             template for(std::size_t index=0; auto elem: all){
                 if(std::meta::identifier_of(elem)==name){
@@ -58,7 +53,7 @@ namespace storage{
         static constexpr List_t return_type_list(){
             return List_t{^^Head, ^^Types...};
         }
-        using number_of_types=1+sizeof...(Types);
+        constexpr static std::size_t number_of_types=1+sizeof...(Types);
     };
     template<typename dynamic_t, typename ... Types>
     struct Runtime_engine {
@@ -83,6 +78,12 @@ namespace storage{
                 return Book_keeping_t{args...};
             }, data)
         },
+        dynamic_book_keeping{
+            book_keeper
+        },
+        dynamic_book_keeper_map{
+            book_keeper_map
+        },
         type_reflections{
             type_folder::return_type_list()
         },
@@ -90,17 +91,14 @@ namespace storage{
             map
         }
         {
-            //dont want to rely on constructor order since bjarne stroustrup book says so
-            std::insert_range(dynamic_book_keeping.begin(), book_keeper);
-            std::insert_range(dynamic_book_keeper_map.begin(), book_keeper_map);
         }
 
     private:
         template<typename T>
         void call_func_impl(T arg, std::size_t func_index){
-            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
+            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Types, std::meta::access_context::unchecked()) ){
                 if(index==func_index){
-                    auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(index):];
+                    auto ptr_to_mem_func= elem;
                     (arg.*ptr_to_mem_func)();
                     break;
                 }
@@ -109,9 +107,9 @@ namespace storage{
         }
         template<typename T, typename T2>
         void call_func_impl(T arg, T2 arg_2, std::size_t func_index){
-            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
+            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Types, std::meta::access_context::unchecked()) ){
                 if(index==func_index){
-                    auto ptr_to_mem_func= [:look_up_namespace::functions_set<decltype(arg)>::get_at_index(index):];
+                    auto ptr_to_mem_func= elem;
                     (arg.*ptr_to_mem_func)(arg_2);
                     break;
                 }
@@ -143,7 +141,7 @@ namespace storage{
                     call_func_impl(*arg, *arg_2, func_index);
                 },
                 dynamic_book_keeping.at(obj_index),
-                dynamic_book_keeping.at(obj_2_index)
+                       dynamic_book_keeping.at(obj_2_index)
             );
         }
         constexpr void call_func(std::size_t obj_index, std::string& func_index){
@@ -161,7 +159,7 @@ namespace storage{
                     call_func_impl(*arg, *arg_2, look_up_namespace::functions_set<decltype(arg)>::get_index(func_index));
                 },
                 dynamic_book_keeping.at(obj_index),
-                dynamic_book_keeping.at(obj_2_index)
+                       dynamic_book_keeping.at(obj_2_index)
             );
         }
         constexpr void add_new_obj(std::iostream& input_stream,std::size_t type_index, std::string& key){
