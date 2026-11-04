@@ -4,9 +4,10 @@
 #include <variant>
 #include <functional>
 #include <array>
-#include<utility>
+#include <utility>
 #include <algorithm>
-//runtime_indexed_tuples( https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf )will be used here to provide fixed size heterogenous lists(for faster indexing), though as you will see, some aspects have been modified:
+#include <flat_map>
+//dynamic_indexed_tuples( https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf )will be used here to provide fixed size heterogenous lists(for faster indexing), though as you will see, some aspects have been modified:
 namespace look_up_namespace{
     template <typename Type>
     struct functions_set{
@@ -57,6 +58,7 @@ namespace storage{
         static constexpr List_t return_type_list(){
             return List_t{^^Head, ^^Types...};
         }
+        using number_of_types=1+sizeof...(Types);
     };
     template<typename dynamic_t, typename ... Types>
     struct Runtime_engine {
@@ -66,11 +68,11 @@ namespace storage{
         type_folder::List_t type_reflections;
         using value_type = type_folder::Variant_t;
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
-        using Book_keeping_map_t= std::flat_map<std::string, std::size_t, std::less<std::size_t>, std::array<std::string>, std::array<std::size_t> >;
+        using Book_keeping_map_t= std::flat_map<std::string, std::size_t, std::less<std::size_t>, std::array<std::string, type_folder::number_of_types>, std::array<std::size_t, type_folder::number_of_types> >;
         Book_keeping_t book_keeper;
         Book_keeping_map_t book_keeper_map;
-        std::vector<value_type> runtime_book_keeping{};
-        std::flat_map<std::string, std::size_t> runtime_book_keeper_map{};
+        std::vector<value_type> dynamic_book_keeping{};
+        std::flat_map<std::string, std::size_t> dynamic_book_keeper_map{};
         using dynamic_storage_type=std::vector<dynamic_t>;
         dynamic_storage_type dynamic_set{};
         template<typename... Types_>
@@ -89,8 +91,8 @@ namespace storage{
         }
         {
             //dont want to rely on constructor order since bjarne stroustrup book says so
-            std::insert_range(runtime_book_keeping.begin(), book_keeper);
-            std::insert_range(runtime_book_keeper_map.begin(), book_keeper_map);
+            std::insert_range(dynamic_book_keeping.begin(), book_keeper);
+            std::insert_range(dynamic_book_keeper_map.begin(), book_keeper_map);
         }
 
     private:
@@ -118,17 +120,20 @@ namespace storage{
         }
     public:
         constexpr value_type operator[](size_t index) {
-            return book_keeper[index];
+            return book_keeper.at(index);
         }
-        constexpr void get_index(std::string& name){
-            return runtime_book_keeper_map[name];
+        constexpr void get_index_from_map(std::string& name){
+            return book_keeper_map.at(name);
+        }
+        constexpr void get_dynamic_index_from_map(std::string& name){
+            return dynamic_book_keeper_map.at(name);
         }
         constexpr void call_func(std::size_t obj_index, std::size_t func_index){
             std::visit(
                 [](auto arg){
                     call_func_impl(*arg, func_index);
                 },
-                runtime_book_keeping[obj_index]
+                dynamic_book_keeping.at(obj_index)
             );
         }
 
@@ -137,8 +142,8 @@ namespace storage{
                 [](auto arg, auto arg_2){
                     call_func_impl(*arg, *arg_2, func_index);
                 },
-                runtime_book_keeping[obj_index],
-                runtime_book_keeping[obj_2_index]
+                dynamic_book_keeping.at(obj_index),
+                dynamic_book_keeping.at(obj_2_index)
             );
         }
         constexpr void call_func(std::size_t obj_index, std::string& func_index){
@@ -146,7 +151,7 @@ namespace storage{
                 [](auto arg){
                     call_func_impl(*arg, look_up_namespace::functions_set<decltype(arg)>::get_index(func_index));
                 },
-                runtime_book_keeping[obj_index]
+                dynamic_book_keeping.at(obj_index)
             );
         }
 
@@ -155,17 +160,17 @@ namespace storage{
                 [](auto arg, auto arg_2){
                     call_func_impl(*arg, *arg_2, look_up_namespace::functions_set<decltype(arg)>::get_index(func_index));
                 },
-                runtime_book_keeping[obj_index],
-                runtime_book_keeping[obj_2_index]
+                dynamic_book_keeping.at(obj_index),
+                dynamic_book_keeping.at(obj_2_index)
             );
         }
         constexpr void add_new_obj(std::iostream& input_stream,std::size_t type_index, std::string& key){
             template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
                 if(index==type_index){
                     auto object=new [:type_reflections.at(index):](input_stream);
-                    runtime_book_keeping.push_back(value_type{object});
+                    dynamic_book_keeping.push_back(value_type{object});
                     if(key!=""){
-                        runtime_book_keeper_map[key]=runtime_book_keeping.size()-1;
+                        dynamic_book_keeper_map[key]=dynamic_book_keeping.size()-1;
                     }
                     break;
                 }
@@ -178,9 +183,9 @@ namespace storage{
                 [](auto arg){
                     delete arg;
                 },
-                runtime_book_keeping[obj_index]
+                dynamic_book_keeping.at(obj_index)
             );
-            runtime_book_keeping.pop_back();
+            dynamic_book_keeping.pop_back();
         }
 
 
