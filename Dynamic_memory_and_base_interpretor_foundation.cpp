@@ -9,20 +9,22 @@
 //runtime_indexed_tuples( https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf )will be used here to provide fixed size heterogenous lists(for faster indexing), though as you will see, some aspects have been modified:
 namespace look_up_namespace{
     template <typename Type>
-    struct functions_set(){
+    struct functions_set{
         static inline constexpr std::vector<std::meta::info> all{std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked())};
         constexpr std::meta::info get_at_index(std::size_t index){
-        auto result=all[index];
-        static_assert( !( std::meta::is_public(result) && std::meta::is_function(result) ) ,"object, not valid function");
-        return result;
+            constexpr auto result=all[index];
+            static_assert( !( std::meta::is_public(result) && std::meta::is_function(result) ) ,"object, not valid function");
+            return result;
         }
         constexpr std::size_t get_index(std::string& name){
-            template for(std::size index=0; auto elem: all){
+            template for(std::size_t index=0; auto elem: all){
                 if(std::meta::identifier_of(elem)==name){
                     return index;
                 }
                 index++;
             }
+            //runs if the functions didnt return:
+            throw std::string (true, "out of bound compile time access to look_up_namespace::functions_set::all vector");
         }
     };
 };
@@ -118,46 +120,46 @@ namespace storage{
         constexpr value_type operator[](size_t index) {
             return book_keeper[index];
         }
-        void get_index(std::string& name){
+        constexpr void get_index(std::string& name){
             return runtime_book_keeper_map[name];
         }
-        void call_func(std::size_t obj_index, std::size_t func_index){
+        constexpr void call_func(std::size_t obj_index, std::size_t func_index){
             std::visit(
                 [](auto arg){
                     call_func_impl(*arg, func_index);
                 },
-                runtime_book_keeping.at(obj_index)
+                runtime_book_keeping[obj_index]
             );
         }
 
-        void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index){
+        constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index){
             std::visit(
                 [](auto arg, auto arg_2){
                     call_func_impl(*arg, *arg_2, func_index);
                 },
-                runtime_book_keeping.at(obj_index),
-                runtime_book_keeping.at(obj_2_index)
+                runtime_book_keeping[obj_index],
+                runtime_book_keeping[obj_2_index]
             );
         }
-        void call_func(std::size_t obj_index, std::string& func_index){
+        constexpr void call_func(std::size_t obj_index, std::string& func_index){
             std::visit(
                 [](auto arg){
                     call_func_impl(*arg, look_up_namespace::functions_set<decltype(arg)>::get_index(func_index));
                 },
-                runtime_book_keeping.at(obj_index)
+                runtime_book_keeping[obj_index]
             );
         }
 
-        void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::string& func_index){
+        constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::string& func_index){
             std::visit(
                 [](auto arg, auto arg_2){
                     call_func_impl(*arg, *arg_2, look_up_namespace::functions_set<decltype(arg)>::get_index(func_index));
                 },
-                runtime_book_keeping.at(obj_index),
-                runtime_book_keeping.at(obj_2_index)
+                runtime_book_keeping[obj_index],
+                runtime_book_keeping[obj_2_index]
             );
         }
-        void add_new_obj(std::iostream& input_stream,std::size_t type_index, std::string& key){
+        constexpr void add_new_obj(std::iostream& input_stream,std::size_t type_index, std::string& key){
             template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
                 if(index==type_index){
                     auto object=new [:type_reflections.at(index):](input_stream);
@@ -171,12 +173,12 @@ namespace storage{
             }
 
         }
-        void remove_obj(std::size_t obj_index){
+        constexpr void remove_obj(std::size_t obj_index){
             std::visit(
                 [](auto arg){
                     delete arg;
                 },
-                runtime_book_keeping.at(obj_index)
+                runtime_book_keeping[obj_index]
             );
             runtime_book_keeping.pop_back();
         }
