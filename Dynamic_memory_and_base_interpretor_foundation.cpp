@@ -49,11 +49,11 @@ namespace storage{
         }
     };
     template<typename dynamic_t, typename ... Types>
-    struct runtime_indexed_tuples {
+    struct Runtime_engine {
         std::tuple<Types...> data;
         using type_folder=get_variant_of_unique_ts<sizeof...(Types)
-        - 1, Types...>;
-        type_folder::List_t type_reflections;//dosent include duplicates
+        - 1, Types...>;//dosent include duplicates
+        type_folder::List_t type_reflections;
         using value_type = type_folder::Variant_t;
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
         using Book_keeping_map_t= std::flat_map<std::string, value_type, std::less<value_type>, std::array<std::string>, std::array<value_type> >;
@@ -64,7 +64,7 @@ namespace storage{
         using dynamic_storage_type=std::vector<dynamic_t>;
         dynamic_storage_type dynamic_set{};
         template<typename... Types_>
-        constexpr runtime_indexed_tuples(Book_keeping_map_t& map, Types_&&... b) :
+        constexpr Runtime_engine(Book_keeping_map_t& map, Types_&&... b) :
         data{ std::tuple(std::forward<Types_>(b)...) },
         book_keeper{
             std::apply([](dynamic_t, auto&... args) {
@@ -114,6 +114,29 @@ namespace storage{
                 runtime_book_keeping.at(obj_2_index)
             );
         }
+        void add_new_obj(std::string init_string,std::size_t type_index, std::string key){
+            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
+                if(index==type_index){
+                    auto object=new [:type_reflections.at(index):](init_string);
+                    runtime_book_keeping.push_back(value_type{object});
+                    if(key!=""){
+                        runtime_book_keeper_map[key]=runtime_book_keeping.back();
+                    }
+                }
+                index++;
+            }
+
+        }
+        void remove_obj(std::size_t obj_index){
+            std::visit(
+                [](auto arg){
+                    delete arg;
+                },
+                runtime_book_keeping.at(obj_index)
+            );
+            runtime_book_keeping.pop_back();
+        }
+
 
 
     };
