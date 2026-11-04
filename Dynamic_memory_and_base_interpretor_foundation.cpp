@@ -90,12 +90,8 @@ namespace storage{
             std::insert_range(runtime_book_keeping.begin(), book_keeper);
             std::insert_range(runtime_book_keeper_map.begin(), book_keeper_map);
         }
-        constexpr value_type operator[](size_t index) {
-            return book_keeper[index];
-        }
-        void get_index(std::string& name){
-            return runtime_book_keeper_map[name];
-        }
+
+    private:
         template<typename T>
         void call_func_impl(T arg, std::size_t func_index){
             template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()) ){
@@ -117,6 +113,13 @@ namespace storage{
                 }
                 index++;
             }
+        }
+    public:
+        constexpr value_type operator[](size_t index) {
+            return book_keeper[index];
+        }
+        void get_index(std::string& name){
+            return runtime_book_keeper_map[name];
         }
         void call_func(std::size_t obj_index, std::size_t func_index){
             std::visit(
