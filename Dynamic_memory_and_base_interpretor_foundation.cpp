@@ -184,20 +184,22 @@ namespace storage{
 
         }
         constexpr void remove_obj(std::size_t obj_index){
-                std::visit(
-                    [](auto arg){
-                        delete arg;//you may delete an eleemnt of the tuple (causing undefind behaviour since elements of tuples arent dynamically allocated) if the user dosent do proper range checks
-                    },
-                    dynamic_book_keeping.at(obj_index)
-                );
+            std::visit(
+                [](auto arg){
+                    delete arg;//you may delete an eleemnt of the tuple (causing undefind behaviour since elements of tuples arent dynamically allocated) if the user dosent do proper range checks
+                },
+                dynamic_book_keeping.at(obj_index)
+            );
             dynamic_book_keeping.pop_back();
         }
         constexpr void remove_obj_checked(std::size_t obj_index){ // returns false if not owned
-            if(!obj_index>std::tuple_size_v<decltype(data)>){
-                remove_obj(obj_index);
-            }
-            else{
-                throw std::string{"object not owned"};
+            if constexpr(is_super_set<T, T_2>()){
+                if(!obj_index>std::tuple_size_v<decltype(data)>){
+                    remove_obj(obj_index);
+                }            
+                else{
+                    throw std::string{"object not owned"};
+                }
             }
         }
     };
