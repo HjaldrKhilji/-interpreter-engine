@@ -188,7 +188,7 @@ namespace storage{
                 if(index==type_index){
                     auto object=new [: type_reflections.at(index) :](input_stream);
                     dynamic_book_keeping.push_back(dynamic_value_t{object});
-                    dynamic_book_keeper_map[key]=dynamic_book_keeping.size()-1;
+                    dynamic_book_keeper_map[key]=dynamic_book_keeping.size()-1; //using operator[] since value_type is a built in type (no copy constructor overhead), hence no point of using emplace here, or in a similiar place.
                     break;
                 }
                 index++;
