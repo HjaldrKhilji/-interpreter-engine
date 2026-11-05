@@ -197,6 +197,9 @@ namespace storage{
             }
 
         }
+        constexpr void update_name_of_obj(std::string& old_name, std::string& name){
+            dynamic_book_keeper_map.find(old_name).first= name;
+        }
         constexpr void remove_obj(std::size_t obj_index){
             std::visit(
                 [](auto arg){
