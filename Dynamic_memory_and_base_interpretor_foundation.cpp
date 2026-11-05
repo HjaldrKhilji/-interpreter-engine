@@ -93,7 +93,7 @@ namespace storage{
         dynamic_book_keeper_map{std::from_range, book_keeper_map}
         {
         }
-        
+
     private:
         template<typename T>
         void call_func_impl(T arg, std::size_t func_index){
@@ -140,7 +140,7 @@ namespace storage{
                 dynamic_book_keeping.at(obj_index)
             );
         }
-        
+
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index){
             std::visit(
                 [func_index](auto arg, auto arg_2){
@@ -158,7 +158,7 @@ namespace storage{
                 dynamic_book_keeping.at(obj_index)
             );
         }
-        
+
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::string& func_index){
             std::visit(
                 [func_index](auto arg, auto arg_2){
@@ -180,20 +180,18 @@ namespace storage{
                 }
                 index++;
             }
-            
+
         }
         constexpr void remove_obj(std::size_t obj_index){
+            if()
             std::visit(
                 [](auto arg){
-                    delete arg;
+                    delete arg;//you may delete an eleemnt of the tuple (causing undefind behaviour since elements of tuples arent dynamically allocated) if the user dosent do proper range checks
                 },
                 dynamic_book_keeping.at(obj_index)
             );
             dynamic_book_keeping.pop_back();
         }
-        
-        
-        
     };
 };
 
