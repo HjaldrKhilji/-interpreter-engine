@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <flat_map>
 #include <ranges>
+#include <tuple>
 //revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace{
     template <typename Type>
@@ -183,14 +184,21 @@ namespace storage{
 
         }
         constexpr void remove_obj(std::size_t obj_index){
-            if()
-            std::visit(
-                [](auto arg){
-                    delete arg;//you may delete an eleemnt of the tuple (causing undefind behaviour since elements of tuples arent dynamically allocated) if the user dosent do proper range checks
-                },
-                dynamic_book_keeping.at(obj_index)
-            );
+                std::visit(
+                    [](auto arg){
+                        delete arg;//you may delete an eleemnt of the tuple (causing undefind behaviour since elements of tuples arent dynamically allocated) if the user dosent do proper range checks
+                    },
+                    dynamic_book_keeping.at(obj_index)
+                );
             dynamic_book_keeping.pop_back();
+        }
+        constexpr void remove_obj_checked(std::size_t obj_index){ // returns false if not owned
+            if(!obj_index>std::tuple_size_v<decltype(data)>){
+                remove_obj(obj_index);
+            }
+            else{
+                throw std::string{"object not owned"};
+            }
         }
     };
 };
