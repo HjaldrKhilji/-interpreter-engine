@@ -193,7 +193,7 @@ namespace storage{
             dynamic_book_keeping.pop_back();
         }
         constexpr void remove_obj_checked(std::size_t obj_index){ // returns false if not owned
-            if constexpr(is_super_set<T, T_2>()){
+            if constexpr(is_super_set<dynamic_value_t, value_type>){
                 if(!obj_index>=std::tuple_size_v<decltype(data)>){
                     remove_obj(obj_index);
                 }
