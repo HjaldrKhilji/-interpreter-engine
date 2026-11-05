@@ -188,9 +188,7 @@ namespace storage{
                 if(index==type_index){
                     auto object=new [: type_reflections.at(index) :](input_stream);
                     dynamic_book_keeping.push_back(dynamic_value_t{object});
-                    if(key!=""){
-                        dynamic_book_keeper_map[key]=dynamic_book_keeping.size()-1;
-                    }
+                    dynamic_book_keeper_map[key]=dynamic_book_keeping.size()-1;
                     break;
                 }
                 index++;
@@ -198,10 +196,14 @@ namespace storage{
 
         }
         constexpr void dynamic_update_name_of_obj(std::string& old_name, std::string& name){
-            dynamic_book_keeper_map.find(old_name).first= name;
+            auto value = dynamic_book_keeper_map.find(old_name)->second;
+            dynamic_book_keeper_map.erase(it);
+            dynamic_book_keeper_map[name]=value;
         }
         constexpr void update_name_of_obj(std::string& old_name, std::string& name){
-            book_keeper_map.find(old_name).first= name;
+            auto value = book_keeper_map.find(old_name)->second;
+            book_keeper_map.erase(it);
+            book_keeper_map[name]=value;
         }
         constexpr void remove_obj(std::size_t obj_index){
             std::visit(
