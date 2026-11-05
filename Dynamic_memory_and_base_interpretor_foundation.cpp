@@ -50,7 +50,7 @@ namespace storage{
         using Variant_t = std::variant<Head*, Types*...>;
     };
     template<template <typename...> typename dummy, typename ...T>
-    constexpr std::array<std::meta::info, sizeof...(T)> get_reflections(dummy<T...>&){
+    constexpr std::array<std::meta::info, sizeof...(T)> get_reflections(dummy<T...>){
         std::tuple<T...> dummy_tuple;
         std::array<std::meta::info, std::variant_size_v<dummy<T...>>> type_reflections{std::apply([](auto&... args) {return {^^decltype(args)...};}, dummy_tuple)};
         return type_reflections;
@@ -63,14 +63,14 @@ namespace storage{
         - 1, Types...>;
         using value_type = type_folder::Variant_t;//dosent include duplicates
         using dynamic_value_t= dynamic_t;
-        constexpr static  inline std::array<std::meta::info, std::variant_size_v<dynamic_t>> type_reflections{};
+        constexpr static  inline std::array<std::meta::info, std::variant_size_v<dynamic_value_t>> type_reflections{};
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
         using Book_keeping_map_t= std::flat_map<std::string, std::size_t, std::less<std::size_t>, std::array<std::string, (sizeof...(Types))>, std::array<std::size_t, (sizeof...(Types))> >;
         Book_keeping_t book_keeper;
         Book_keeping_map_t book_keeper_map;
-        std::vector<dynamic_t> dynamic_book_keeping{};
-        std::flat_map<std::string, std::size_t> dynamic_book_keeper_map{get_reflections(std::declval<dynamic_t>())};
-        using dynamic_storage_type=std::vector<dynamic_t>;
+        std::vector<dynamic_value_t> dynamic_book_keeping{};
+        std::flat_map<std::string, std::size_t> dynamic_book_keeper_map{get_reflections(std::declval<dynamic_value_t>())};
+        using dynamic_storage_type=std::vector<dynamic_value_t>;
         template<typename... Types_>
         constexpr runtime_indexed_tuples(Book_keeping_map_t& map, Types_&&... b) :
         data{ std::tuple(std::forward<Types_>(b)...) },
@@ -80,7 +80,7 @@ namespace storage{
             }, data)
         },
         dynamic_book_keeping{
-            (requires(value_type a){dynamic_t{a};})? book_keeper: std::vector<dynamic_t> {} //is the dynamic_t passed by user constructable by the value_type, if not then use make it be empty.
+            (requires(value_type a){dynamic_value_t{a};})? book_keeper: std::vector<dynamic_value_t> {} //is the dynamic_value_t passed by user constructable by the value_type, if not then use make it be empty.
         },
         dynamic_book_keeper_map{
             book_keeper_map
@@ -120,7 +120,7 @@ namespace storage{
         constexpr value_type get_at_index(std::size_t index) {
             return book_keeper.at(index);
         }
-        constexpr value_type get_dynamic_at_index(std::size_t index) {
+        constexpr dynamic_value_t get_dynamic_at_index(std::size_t index) {
             return dynamic_book_keeping.at(index);
         }
         constexpr std::size_t get_index_from_map(std::string& name){
@@ -169,7 +169,7 @@ namespace storage{
             template for( std::size_t index=0; auto elem: type_reflections){
                 if(index==type_index){
                     auto object=new [: type_reflections.at(index) :](input_stream);
-                    dynamic_book_keeping.push_back(value_type{object});
+                    dynamic_book_keeping.push_back(dynamic_value_t{object});
                     if(key!=""){
                         dynamic_book_keeper_map[key]=dynamic_book_keeping.size()-1;
                     }
