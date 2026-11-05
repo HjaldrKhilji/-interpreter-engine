@@ -48,33 +48,34 @@ namespace storage{
     struct get_variant_of_unique_ts<0, Head, Types...>
     {
         using Variant_t = std::variant<Head*, Types*...>;
-        using List_t=std::array<std::meta::info, 1+sizeof...(Types)>;
-        static constexpr List_t return_type_list(){
-            return List_t{^^Head, ^^Types...};
-        }
-        constexpr static std::size_t number_of_types=1+sizeof...(Types);
     };
+    template<template <typename...> typename dummy, typename ...T>
+    constexpr std::array<std::meta::info, sizeof...(T)> get_reflections(dummy<T...>&){
+        std::tuple<T...> dummy_tuple;
+        std::array<std::meta::info, std::variant_size_v<dummy<T...>>> type_reflections{std::apply([](auto&... args) {return {^^decltype(args)...};}, dummy_tuple)};
+        return type_reflections;
+    }
+
     template<typename dynamic_t, typename ... Types>
     struct runtime_indexed_tuples {
         std::tuple<Types...> data;
         using type_folder=get_variant_of_unique_ts<sizeof...(Types)
-        - 1, Types...>;//dosent include duplicates
-        type_folder::List_t type_reflections;
-        using value_type = type_folder::Variant_t;
+        - 1, Types...>;
+        using value_type = type_folder::Variant_t;//dosent include duplicates
         using dynamic_value_t= dynamic_t;
+        constexpr static  inline std::array<std::meta::info, std::variant_size_v<dynamic_t>> type_reflections{};
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
-        using Book_keeping_map_t= std::flat_map<std::string, std::size_t, std::less<std::size_t>, std::array<std::string, type_folder::number_of_types>, std::array<std::size_t, type_folder::number_of_types> >;
+        using Book_keeping_map_t= std::flat_map<std::string, std::size_t, std::less<std::size_t>, std::array<std::string, (sizeof...(Types))>, std::array<std::size_t, (sizeof...(Types))> >;
         Book_keeping_t book_keeper;
         Book_keeping_map_t book_keeper_map;
         std::vector<dynamic_t> dynamic_book_keeping{};
-        std::flat_map<std::string, std::size_t> dynamic_book_keeper_map{};
+        std::flat_map<std::string, std::size_t> dynamic_book_keeper_map{get_reflections(std::declval<dynamic_t>())};
         using dynamic_storage_type=std::vector<dynamic_t>;
-        dynamic_storage_type dynamic_set{};
         template<typename... Types_>
         constexpr runtime_indexed_tuples(Book_keeping_map_t& map, Types_&&... b) :
         data{ std::tuple(std::forward<Types_>(b)...) },
         book_keeper{
-            std::apply([](dynamic_t, auto&... args) {
+            std::apply([](auto&... args) {
                 return Book_keeping_t{args...};
             }, data)
         },
@@ -83,9 +84,6 @@ namespace storage{
         },
         dynamic_book_keeper_map{
             book_keeper_map
-        },
-        type_reflections{
-            type_folder::return_type_list()
         },
         book_keeper_map{
             map
@@ -168,9 +166,9 @@ namespace storage{
             );
         }
         constexpr void add_new_obj(std::iostream& input_stream,std::size_t type_index, std::string& key){
-            template for( std::size_t index=0; auto elem: std::meta::nonstatic_data_members_of(type_reflections, std::meta::access_context::unchecked()) ){
+            template for( std::size_t index=0; auto elem: type_reflections){
                 if(index==type_index){
-                    auto object=new [:type_reflections.at(index):](input_stream);
+                    auto object=new [: type_reflections.at(index) :](input_stream);
                     dynamic_book_keeping.push_back(value_type{object});
                     if(key!=""){
                         dynamic_book_keeper_map[key]=dynamic_book_keeping.size()-1;
