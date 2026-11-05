@@ -224,6 +224,6 @@ namespace storage{
 
 int main()
 {
-    storage::runtime_indexed_tuples obj{std::tuple<int, double>{}, {}};
+    storage::runtime_indexed_tuples obj{std::tuple<int, double>{1, 2}, {}};
     return 0;
 }
