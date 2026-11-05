@@ -7,6 +7,7 @@
 #include <utility>
 #include <algorithm>
 #include <flat_map>
+#include <ranges>
 //revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace{
     template <typename Type>
@@ -88,11 +89,11 @@ namespace storage{
         },
         book_keeper_map{
             map
-        }
+        },
+        dynamic_book_keeper_map{std::from_range, book_keeper_map}
         {
-            dynamic_book_keeper_map.insert_range(book_keeper_map);
         }
-
+        
     private:
         template<typename T>
         void call_func_impl(T arg, std::size_t func_index){
@@ -139,7 +140,7 @@ namespace storage{
                 dynamic_book_keeping.at(obj_index)
             );
         }
-
+        
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index){
             std::visit(
                 [func_index](auto arg, auto arg_2){
@@ -157,7 +158,7 @@ namespace storage{
                 dynamic_book_keeping.at(obj_index)
             );
         }
-
+        
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::string& func_index){
             std::visit(
                 [func_index](auto arg, auto arg_2){
@@ -179,7 +180,7 @@ namespace storage{
                 }
                 index++;
             }
-
+            
         }
         constexpr void remove_obj(std::size_t obj_index){
             std::visit(
@@ -190,9 +191,9 @@ namespace storage{
             );
             dynamic_book_keeping.pop_back();
         }
-
-
-
+        
+        
+        
     };
 };
 
