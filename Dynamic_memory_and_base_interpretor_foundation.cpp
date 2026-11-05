@@ -196,12 +196,14 @@ namespace storage{
 
         }
         constexpr void dynamic_update_name_of_obj(std::string& old_name, std::string& name){
-            auto value = dynamic_book_keeper_map.find(old_name)->second;
+            auto it=dynamic_book_keeper_map.find(old_name);
+            auto value = it->second;
             dynamic_book_keeper_map.erase(it);
             dynamic_book_keeper_map[name]=value;
         }
         constexpr void update_name_of_obj(std::string& old_name, std::string& name){
-            auto value = book_keeper_map.find(old_name)->second;
+            auto it=book_keeper_map.find(old_name);
+            auto value = it->second;
             book_keeper_map.erase(it);
             book_keeper_map[name]=value;
         }
