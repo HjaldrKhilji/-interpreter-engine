@@ -63,23 +63,37 @@ namespace storage{
     template<typename T, typename T_2>
     requires (!is_super_set<T, T_2>)
     constexpr T construct_if_super_set(T_2& operand){return T{}; }
-    template<template<class Key_t,class T,class compare = std::less<Key_t>,class Key_cont_t = std::vector<Key_t>,class Internal_map_t = std::vector<T>> class Mapped_t, typename dynamic_t, typename ... Types>
+    template <template<typename...> typename tuple_like, typename...T>
+    std::tuple<T...> get_empty_tuple(tuple_like<T...>){
+        return std::tuple<T...>{};
+    }
+    template <typename... Types>
+    struct type_folder;
+    template<typename... Types>
+    struct type_folder<std::tuple<Types...>>{
+        using Variant_t=get_variant_of_unique_ts<sizeof...(Types)
+        - 1, Types...>::Variant_t;
+    };
+    template<typename tuple_specialization, typename dynamic_t=type_folder<tuple_specialization>::Variant_t, template<class Key_t,class T,class compare = std::less<Key_t>,class Key_cont_t = std::vector<Key_t>,class Internal_map_t = std::vector<T>> class Mapped_t= std::flat_map>
+    requires requires(tuple_specialization a){
+        std::tuple{a};
+    }
     struct runtime_indexed_tuples {
-        std::tuple<Types...> data;
-        using type_folder=get_variant_of_unique_ts<sizeof...(Types)
-        - 1, Types...>;
-        using value_type = type_folder::Variant_t;//dosent include duplicates
+        tuple_specialization data;
+        using value_type = type_folder<tuple_specialization>::Variant_t;//dosent include duplicates
         using dynamic_value_t= dynamic_t;
         constexpr static  inline std::array<std::meta::info, std::variant_size_v<dynamic_value_t>> type_reflections{get_reflections(std::declval<dynamic_value_t>())};
-        using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
-        using Book_keeping_map_t= Mapped_t<std::string, std::size_t, std::less<std::size_t>, std::array<std::string, (sizeof...(Types))>, std::array<std::size_t, (sizeof...(Types))> >;
+        constexpr static std::size_t number_of_tuple_types=std::tuple_size_v<tuple_specialization>;
+        using Book_keeping_t = std::array<value_type, number_of_tuple_types>;
+        using Book_keeping_map_t= Mapped_t<std::string, std::size_t, std::less<std::size_t>, std::array<std::string, number_of_tuple_types>, std::array<std::size_t, number_of_tuple_types> >;
         Book_keeping_t book_keeper;
         Book_keeping_map_t book_keeper_map;
         std::vector<dynamic_value_t> dynamic_book_keeping{};
         Mapped_t<std::string, std::size_t> dynamic_book_keeper_map{};
         using dynamic_storage_type=std::vector<dynamic_value_t>;
-        constexpr runtime_indexed_tuples(const Book_keeping_map_t& map, Types&&... b) :
-        data{ std::tuple(std::forward<Types>(b)...) },
+        constexpr runtime_indexed_tuples()=default;
+        constexpr runtime_indexed_tuples(tuple_specialization&& src_tuple, Book_keeping_map_t&& map) :
+        data{std::forward<tuple_specialization>(src_tuple)},
         book_keeper{
             std::apply([](auto&... args) {
                 return Book_keeping_t{value_type(&args)...};
@@ -210,6 +224,6 @@ namespace storage{
 
 int main()
 {
-    storage::runtime_indexed_tuples<std::flat_map, std::variant<int, double, float>, int, double> obj{{}, 1, 2};
+    storage::runtime_indexed_tuples obj{std::tuple<int, double>{}, {}};
     return 0;
 }
