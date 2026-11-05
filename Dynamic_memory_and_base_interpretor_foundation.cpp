@@ -63,7 +63,7 @@ namespace storage{
     template<typename T, typename T_2>
     requires (!is_super_set<T, T_2>)
     constexpr T construct_if_super_set(T_2& operand){return T{}; }
-    template<typename dynamic_t, typename ... Types>
+    template<template<class Key_t,class T,class compare = std::less<Key_t>,class Key_cont_t = std::vector<Key_t>,class Internal_map_t = std::vector<T>> class Mapped_t, typename dynamic_t, typename ... Types>
     struct runtime_indexed_tuples {
         std::tuple<Types...> data;
         using type_folder=get_variant_of_unique_ts<sizeof...(Types)
@@ -72,11 +72,11 @@ namespace storage{
         using dynamic_value_t= dynamic_t;
         constexpr static  inline std::array<std::meta::info, std::variant_size_v<dynamic_value_t>> type_reflections{get_reflections(std::declval<dynamic_value_t>())};
         using Book_keeping_t = std::array<value_type, (sizeof...(Types))>;
-        using Book_keeping_map_t= std::flat_map<std::string, std::size_t, std::less<std::size_t>, std::array<std::string, (sizeof...(Types))>, std::array<std::size_t, (sizeof...(Types))> >;
+        using Book_keeping_map_t= Mapped_t<std::string, std::size_t, std::less<std::size_t>, std::array<std::string, (sizeof...(Types))>, std::array<std::size_t, (sizeof...(Types))> >;
         Book_keeping_t book_keeper;
         Book_keeping_map_t book_keeper_map;
         std::vector<dynamic_value_t> dynamic_book_keeping{};
-        std::flat_map<std::string, std::size_t> dynamic_book_keeper_map{};
+        Mapped_t<std::string, std::size_t> dynamic_book_keeper_map{};
         using dynamic_storage_type=std::vector<dynamic_value_t>;
         constexpr runtime_indexed_tuples(const Book_keeping_map_t& map, Types&&... b) :
         data{ std::tuple(std::forward<Types>(b)...) },
@@ -93,8 +93,8 @@ namespace storage{
         },
         dynamic_book_keeper_map{std::from_range, book_keeper_map}
         {
-        }
 
+        }
     private:
         template<typename T>
         void call_func_impl(T arg, std::size_t func_index){
@@ -210,6 +210,6 @@ namespace storage{
 
 int main()
 {
-    storage::runtime_indexed_tuples<std::variant<int, double, float>, int, double> obj{{}, 1, 2};
+    storage::runtime_indexed_tuples<std::flat_map, std::variant<int, double, float>, int, double> obj{{}, 1, 2};
     return 0;
 }
