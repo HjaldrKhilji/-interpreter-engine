@@ -272,19 +272,19 @@ namespace storage {
       auto it = book_keeper_map.find(old_name);
       book_keeper_map.erase(it);
     }
-    constexpr void remove_obj(std::size_t obj_index) {
+    constexpr void remove_obj() {
       std::visit(
         [](auto arg) {
           delete arg; //you may delete an eleemnt of the tuple (causing undefind behaviour since elements of tuples arent dynamically allocated) if the user dosent do proper range checks
         },
-        dynamic_book_keeping.at(obj_index)
+        dynamic_book_keeping.back();
       );
       dynamic_book_keeping.pop_back();
     }
-    constexpr void remove_obj_checked(std::size_t obj_index) { // returns false if not owned
+    constexpr void remove_obj_checked() { // returns false if not owned
       if constexpr(is_super_set < dynamic_value_t, value_type > ) {
-        if (!(obj_index >= std::tuple_size_v < decltype(data) >) ) {
-          remove_obj(obj_index);
+        if (!(dynamic_book_keeping.size() >= std::tuple_size_v < decltype(data) >) ) {
+          remove_obj();
         } else {
           throw std::string {
             "object not owned"
