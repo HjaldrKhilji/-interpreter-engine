@@ -163,7 +163,7 @@ namespace storage {
           if (index == func_index) {
             auto ptr_to_mem_func = elem;
             (arg.*ptr_to_mem_func)();
-            break;
+            return;
           }
           index++;
         }
@@ -178,7 +178,7 @@ namespace storage {
           if (index == func_index) {
             auto ptr_to_mem_func = elem;
             (arg.*ptr_to_mem_func)(arg_2);
-            break;
+            return;
           }
           index++;
         }
