@@ -159,7 +159,7 @@ namespace storage {
       template < typename T >
       void call_func_impl(T arg, std::size_t func_index) {
         template
-        for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^ ^ T, std::meta::access_context::unchecked())) {
+        for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^ ^ *T, std::meta::access_context::unchecked())) {
           if (index == func_index) {
             auto ptr_to_mem_func = elem;
             (arg.*ptr_to_mem_func)();
@@ -174,10 +174,10 @@ namespace storage {
     template < typename T, typename T2 >
       void call_func_impl(T arg, T2 arg_2, std::size_t func_index) {
         template
-        for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^ ^ T, std::meta::access_context::unchecked())) {
+        for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^ ^ *T, std::meta::access_context::unchecked())) {
           if (index == func_index) {
             auto ptr_to_mem_func = elem;
-            (arg.*ptr_to_mem_func)(arg_2);
+            (arg.*ptr_to_mem_func)(*arg_2);
             return;
           }
           index++;
