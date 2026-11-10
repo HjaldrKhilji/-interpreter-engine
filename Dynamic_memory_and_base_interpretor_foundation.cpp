@@ -277,7 +277,7 @@ namespace storage {
         [](auto arg) {
           delete arg; //you may delete an eleemnt of the tuple (causing undefind behaviour since elements of tuples arent dynamically allocated) if the user dosent do proper range checks
         },
-        dynamic_book_keeping.back();
+        dynamic_book_keeping.back()
       );
       dynamic_book_keeping.pop_back();
     }
