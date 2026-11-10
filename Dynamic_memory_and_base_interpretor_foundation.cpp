@@ -24,7 +24,7 @@ namespace look_up_namespace {
   template < typename Type >
     struct functions_set {
       static inline constexpr std::vector < std::meta::info > all {
-        std::meta::nonstatic_data_members_of( ^ ^ Type, std::meta::access_context::unchecked())
+        std::meta::nonstatic_data_members_of( ^^Type, std::meta::access_context::unchecked())
       };
       constexpr std::size_t get_index(std::string & name) {
         template
@@ -76,7 +76,7 @@ namespace storage {
       std::array < std::meta::info, std::variant_size_v < dummy < T... >>> type_reflections {
         std::apply([](auto & ...args) {
           return {
-            ^ ^ decltype(args)...
+            ^^ decltype(args)...
           };
         }, dummy_tuple)
       };
@@ -159,7 +159,7 @@ namespace storage {
       template < typename T >
       void call_func_impl(T arg, std::size_t func_index) {
         template
-        for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^ ^ *T, std::meta::access_context::unchecked())) {
+        for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^^T, std::meta::access_context::unchecked())) {
           if (index == func_index) {
             auto ptr_to_mem_func = elem;
             (arg.*ptr_to_mem_func)();
@@ -174,10 +174,10 @@ namespace storage {
     template < typename T, typename T2 >
       void call_func_impl(T arg, T2 arg_2, std::size_t func_index) {
         template
-        for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^ ^ *T, std::meta::access_context::unchecked())) {
+        for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^^T, std::meta::access_context::unchecked())) {
           if (index == func_index) {
             auto ptr_to_mem_func = elem;
-            (arg.*ptr_to_mem_func)(*arg_2);
+            (arg.*ptr_to_mem_func)(arg_2);
             return;
           }
           index++;
@@ -241,7 +241,7 @@ namespace storage {
         template
         for (std::size_t index = 0; auto elem: type_reflections) {
           if (index == type_index) {
-            auto object = new [: type_reflections.at(index): ](input_stream);
+            auto object = new [:type_reflections.at(index):](input_stream);
             dynamic_book_keeping.push_back(dynamic_value_t {
               object
             });
