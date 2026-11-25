@@ -70,10 +70,10 @@ namespace storage {
       using Variant_t = std::variant < Head * ,
       Types * ... > ;
     };
-  template < template < typename... > typename dummy, typename...T >
-    constexpr std::array < std::meta::info, sizeof...(T) > get_reflections(dummy < T... > ) {
+  template < template < typename... > typename Dummy, typename...T >
+    constexpr std::array < std::meta::info, sizeof...(T) > get_reflections(Dummy < T... > ) {
       std::tuple < T... > dummy_tuple;
-      std::array < std::meta::info, std::variant_size_v < dummy < T... >>> type_reflections {
+      std::array < std::meta::info, std::variant_size_v < Dummy < T... >>> type_reflections {
         std::apply([](auto & ...args) {
           return {
             ^^ decltype(args)...
@@ -110,7 +110,7 @@ namespace storage {
       1,
       Types... > ::Variant_t;
     };
-  template < typename tuple_specialization, typename dynamic_t = type_folder < tuple_specialization > ::Variant_t, template < class Key_t, class T, class compare = std::less < Key_t > , class Key_cont_t = std::vector < Key_t > , class Internal_map_t = std::vector < T >> class Mapped_t = std::flat_map >
+  template < typename tuple_specialization, typename dynamic_t = type_folder < tuple_specialization > ::Variant_t, template < class Key_t, class T, class compare = std::less < Key_t > , class Key_cont_t = std::vector < Key_t > , class Internal_content_t = std::vector < T >> class Mapped_t = std::flat_map >
     requires requires(tuple_specialization a) {
       std::tuple {
         a
@@ -120,8 +120,24 @@ namespace storage {
     tuple_specialization data;
     using value_type = type_folder < tuple_specialization > ::Variant_t; //dosent include duplicates
     using dynamic_value_t = dynamic_t;
-    constexpr static inline std::array < std::meta::info, std::variant_size_v < dynamic_value_t >> type_reflections {
+    constexpr static std::size_t size_of_variant=std::variant_size_v < dynamic_value_t >;
+    constexpr static inline std::array < std::meta::info, size_of_variant> type_reflections {
       get_reflections(std::declval < dynamic_value_t > ())
+    };
+    using Type_name_to_index_map_t= Mapped_t<
+        std::string, std::size_t, std::less<std::size_t>,
+        std::array < std::string, size_of_variant >,
+        std::array < std::size_t, size_of_variant >
+        >;
+    constexpr static inline Type_name_to_index_map_t name_to_index_map{
+        [](){
+            int i=0;
+            Type_name_to_index_map_t result;
+            template for(constexpr auto [index, element]: result){
+                result[std::meta::identifier_of(^^std::variant_alternative_t<index, dynamic_value_t>)]=index;
+            }
+            return result;
+        }
     };
     constexpr static std::size_t number_of_tuple_types = std::tuple_size_v < tuple_specialization > ;
     using Book_keeping_t = std::array < value_type, number_of_tuple_types > ;
@@ -198,6 +214,9 @@ namespace storage {
     }
     constexpr std::size_t get_dynamic_index_from_map(std::string & name) {
       return dynamic_book_keeper_map.at(name);
+    }
+    constexpr std::size_t get_type_index(std::string name){
+        return name_to_index_map[name];
     }
     constexpr void call_func(std::size_t obj_index, std::size_t func_index) {
       std::visit(
@@ -301,5 +320,6 @@ int main() {
       2
     }, {}
   };
+
   return 0;
 }
