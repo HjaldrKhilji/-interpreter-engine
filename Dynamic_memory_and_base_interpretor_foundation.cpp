@@ -84,14 +84,15 @@ namespace storage {
         };
         return type_reflections;
     }
-    template <typename Result_t, std::size_t size_of_variant, typename... T>
-    constexpr Result_t return_name_to_index_mapping(std::variant<T...>){
-        constexpr static std::array<std::string, size_of_variant> dummy{std::string{std::meta::display_string_of(^^T)}...};
-        Result_t result;
-        for(auto [index, element]: std::views::enumerate(dummy)){
-            result[element]=index;
-        }
-        return result;
+    template <typename Result_t, typename... T>
+    constexpr Result_t return_name_to_index_mapping(std::variant<T...> dummy){
+        auto lambda_impl= []<typename Result_t_t, typename... T_t, std::size_t... indexes>(std::variant<T_t...> dummy,std::index_sequence<indexes...>){
+            return Result_t_t{std::from_range, 
+                std::array{
+                std::pair{std::meta::display_string_of(^^T_t), indexes}...
+                }
+        };
+        return lambda_impl.template operator()<Result_t>(dummy, std::make_index_sequence<sizeof...(T)>{});
     }
     template < typename T, typename T_2 >
     concept is_super_set = requires(T_2 & a) {
@@ -135,13 +136,9 @@ namespace storage {
         constexpr static inline std::array < std::meta::info, size_of_variant> type_reflections {
             get_reflections(std::declval < dynamic_value_t > ())
         };
-        using Type_name_to_index_map_t= Mapped_t<
-        std::string, std::size_t, std::less<std::string>,
-        std::array < std::string, size_of_variant >,
-        std::array < std::size_t, size_of_variant >
-        >;
+        using Type_name_to_index_map_t= Mapped_t<std::string, std::size_t>;
         constexpr static inline Type_name_to_index_map_t name_to_index_map{
-            return_name_to_index_mapping<Type_name_to_index_map_t, size_of_variant>(dynamic_value_t{})
+            return_name_to_index_mapping<Type_name_to_index_map_t>(dynamic_value_t{})
         };
         constexpr static std::size_t number_of_tuple_types = std::tuple_size_v < tuple_specialization > ;
         using Book_keeping_t = std::array < value_type, number_of_tuple_types > ;
