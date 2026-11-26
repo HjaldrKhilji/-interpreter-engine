@@ -20,6 +20,8 @@
 
 #include <tuple>
 
+#include <inplace_vector>
+
 #include<iostream>
 //revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace {
@@ -86,13 +88,14 @@ namespace storage {
     }
     template <typename Result_t, typename... T>
     constexpr Result_t return_name_to_index_mapping(std::variant<T...> dummy){
-        auto lambda_impl= []<typename Result_t_t, typename... T_t, std::size_t... indexes>(std::variant<T_t...> dummy,std::index_sequence<indexes...>){
-            return Result_t_t{std::from_range, 
+        return []<typename Result_t_t, typename... T_t, std::size_t... indexes>(std::variant<T_t...> dummy,std::index_sequence<indexes...>){
+            return 
+            Result_t_t{std::from_range, 
                 std::array{
-                std::pair{std::meta::display_string_of(^^T_t), indexes}...
+                std::pair{std::string{std::meta::display_string_of(^^T_t)}, indexes}...
                 }
-        };
-        return lambda_impl.template operator()<Result_t>(dummy, std::make_index_sequence<sizeof...(T)>{});
+            };
+        }.template operator()<Result_t>(dummy, std::make_index_sequence<sizeof...(T)>{});
     }
     template < typename T, typename T_2 >
     concept is_super_set = requires(T_2 & a) {
@@ -136,7 +139,11 @@ namespace storage {
         constexpr static inline std::array < std::meta::info, size_of_variant> type_reflections {
             get_reflections(std::declval < dynamic_value_t > ())
         };
-        using Type_name_to_index_map_t= Mapped_t<std::string, std::size_t>;
+        using Type_name_to_index_map_t= Mapped_t<
+        std::string, std::size_t, std::less<std::string>,
+        std::inplace_vector < std::string, size_of_variant >,
+        std::inplace_vector < std::size_t, size_of_variant >
+        >;
         constexpr static inline Type_name_to_index_map_t name_to_index_map{
             return_name_to_index_mapping<Type_name_to_index_map_t>(dynamic_value_t{})
         };
