@@ -20,21 +20,26 @@
 
 #include <tuple>
 
-#include <inplace_vector>
-
 #include<iostream>
+
+#include<inplace_vector>
+
 //revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace {
     template < typename Type >
-    constexpr std::meta::info get_meta_obj(const std::size_t & index) {
+    constexpr auto& Internal_content_t() {
         static constexpr auto index_data=std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked());
+        return index_data;
+    }
+    template < typename Type >
+    constexpr std::meta::info get_meta_obj(const std::size_t & index) {
         if consteval{
-            return index_data.at(index);
+            return Internal_content_t<Type>().at(index);
         }
         else{
             //for each loop:
             std::size_t i=0;
-            template for(auto& x: index_data){
+            template for(auto& x: Internal_content_t<Type>()){
                 if(i==index){
                     return x;
                 }
@@ -43,7 +48,7 @@ namespace look_up_namespace {
         }
     }
     template < typename Type >
-    constexpr std::meta::info get_meta_obj(const std::string & name) {
+    constexpr std::meta::info get_meta_obj_string(const std::string & name) {
         //due to a compiler bug I couldnt make the variable below "static constexpr auto".
         auto look_up_data= []() consteval{
             std::flat_map<std::string, std::meta::info> result;
@@ -56,7 +61,7 @@ namespace look_up_namespace {
             return look_up_data.at(name);
         }
         else{
-            template for(auto& x: index_data){
+            template for(auto& x: Internal_content_t<Type>()){
                 if(std::meta::identifier_of(x)==name){
                     return x;
                 }
@@ -145,7 +150,7 @@ namespace storage {
         1,
         Types... > ::Variant_t;
     };
-    template < typename tuple_specialization, typename dynamic_t = type_folder < tuple_specialization > ::Variant_t, template < class Key_t, class T, class compare = std::less < Key_t > , class Key_cont_t = std::vector < Key_t > , class Internal_content_t = std::vector < T >> class Mapped_t = std::flat_map >
+    template < typename tuple_specialization, typename dynamic_t = type_folder < tuple_specialization > ::Variant_t, template < class Key_t, class T, class compare = std::less < Key_t > , class Key_cont_t = std::vector < Key_t > , class Internal_content_t<Type> = std::vector < T >> class Mapped_t = std::flat_map >
     requires requires(tuple_specialization a) {
         std::tuple {
             a
@@ -236,7 +241,7 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg) {
-                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])();
+                    (*arg.*[:look_up_namespace::get_meta_obj_string<decltype(*arg)>(func_name):])();
                 },
                 dynamic_book_keeping.at(obj_index)
             );
@@ -245,7 +250,7 @@ namespace storage {
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg, auto arg_2) {
-                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])(*arg_2);
+                    (*arg.*[:look_up_namespace::get_meta_obj_string<decltype(*arg)>(func_name):])(*arg_2);
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
