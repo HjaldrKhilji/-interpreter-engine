@@ -25,24 +25,28 @@
 #include<iostream>
 //revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace {
-    template < typename Type >
-    struct functions_set {
-        static inline constexpr std::vector < std::meta::info > all {
-            std::meta::nonstatic_data_members_of( ^^Type, std::meta::access_context::unchecked())
-        };
-        constexpr std::size_t get_index(std::string & name) {
-            template
-            for (std::size_t index = 0; auto elem: all) {
-                if (std::meta::identifier_of(elem) == name) {
-                    return index;
-                }
-                index++;
-            }
-            throw std::out_of_range {
-                "out of bound compile time access to look_up_namespace::functions_set::all vector"
-            };
-        }
+    template<typename Type>
+    struct internal_lookup_data{
+        static constexpr inline auto index_data=std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked());
+        static constexpr inline auto size_of_list=index_data.size();
+        static constexpr inline std::flat_map<std::string, std::meta::info, std::less<>, std::inplace_vector<std::string, size_of_list>, std::inplace_vector<std::meta::info, size_of_list>> look_up_data=
+        [](){
+            std::flat_map<std::string, std::meta::info, std::less<>, std::inplace_vector<std::string, size_of_list>, std::inplace_vector<std::meta::info, size_of_list>> result;
+            std::ranges::for_each(std::as_const(index_data), [&result](auto& elem){
+                result[std::string{std::meta::identifier_of(elem)}]=elem;
+            });
+
+            return result;
+        }();
     };
+    template < typename Type >
+    constexpr std::meta::info get_meta_obj(const std::string & name) {
+        return internal_lookup_data<Type>::look_up_data.at(name);
+    }
+    template < typename Type >
+    constexpr std::meta::info get_meta_obj(const std::size_t & index) {
+        return internal_lookup_data<Type>::index_data.at(index);
+    }
 };
 namespace storage {
     template < template < std::size_t N, typename... > class F, std::size_t N,
@@ -89,10 +93,10 @@ namespace storage {
     template <typename Result_t, typename... T>
     constexpr Result_t return_name_to_index_mapping(std::variant<T...> dummy){
         return []<typename Result_t_t, typename... T_t, std::size_t... indexes>(std::variant<T_t...> dummy,std::index_sequence<indexes...>){
-            return 
-            Result_t_t{std::from_range, 
+            return
+            Result_t_t{std::from_range,
                 std::array{
-                std::pair{std::string{std::meta::display_string_of(^^T_t)}, indexes}...
+                    std::pair{std::string{std::meta::display_string_of(^^T_t)}, indexes}...
                 }
             };
         }.template operator()<Result_t>(dummy, std::make_index_sequence<sizeof...(T)>{});
@@ -179,57 +183,26 @@ namespace storage {
         } {
 
         }
-    private:
-        template < typename T >
-        void call_func_impl(T arg, std::size_t func_index) {
-            template
-            for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^^T, std::meta::access_context::unchecked())) {
-                if (index == func_index) {
-                    auto ptr_to_mem_func = elem;
-                    (arg.*ptr_to_mem_func)();
-                    return;
-                }
-                index++;
-            }
-            throw std::out_of_range {
-                "function index out of range in operation"
-            };
-        }
-        template < typename T, typename T2 >
-        void call_func_impl(T arg, T2 arg_2, std::size_t func_index) {
-            template
-            for (std::size_t index = 0; auto elem: std::meta::nonstatic_data_members_of( ^^T, std::meta::access_context::unchecked())) {
-                if (index == func_index) {
-                    auto ptr_to_mem_func = elem;
-                    (arg.*ptr_to_mem_func)(arg_2);
-                    return;
-                }
-                index++;
-            }
-            throw std::out_of_range {
-                "function index out of range in binary operation"
-            };
-        }
-    public:
+
         constexpr value_type get_at_index(std::size_t index) {
             return book_keeper.at(index);
         }
         constexpr dynamic_value_t get_dynamic_at_index(std::size_t index) {
             return dynamic_book_keeping.at(index);
         }
-        constexpr std::size_t get_index_from_map(std::string & name) {
+        constexpr std::size_t get_index_from_map(const std::string & name) {
             return book_keeper_map.at(name);
         }
-        constexpr std::size_t get_dynamic_index_from_map(std::string & name) {
+        constexpr std::size_t get_dynamic_index_from_map(const std::string & name) {
             return dynamic_book_keeper_map.at(name);
         }
-        constexpr static std::size_t get_type_index(std::string name){
+        constexpr static std::size_t get_type_index(const std::string name){
             return name_to_index_map.at(name);
         }
         constexpr void call_func(std::size_t obj_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg) {
-                    call_func_impl( * arg, func_index);
+                    (arg.*look_up_namespace::get_meta_obj<decltype(*arg)>(func_index))();
                 },
                 dynamic_book_keeping.at(obj_index)
             );
@@ -238,25 +211,25 @@ namespace storage {
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg, auto arg_2) {
-                    call_func_impl( * arg, * arg_2, func_index);
+                    (arg.*look_up_namespace::get_meta_obj<decltype(*arg)>(func_index))(*arg2);
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
             );
         }
-        constexpr void call_func(std::size_t obj_index, std::string & func_index) {
+        constexpr void call_func(std::size_t obj_index, const std::string & func_name) {
             std::visit(
                 [func_index](auto arg) {
-                    call_func_impl( * arg, look_up_namespace::functions_set < decltype(arg) > ::get_index(func_index));
+                    (arg.*look_up_namespace::get_meta_obj<decltype(*arg)>(func_name))();
                 },
                 dynamic_book_keeping.at(obj_index)
             );
         }
 
-        constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::string & func_index) {
+        constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, const std::string & func_index) {
             std::visit(
                 [func_index](auto arg, auto arg_2) {
-                    call_func_impl( * arg, * arg_2, look_up_namespace::functions_set < decltype(arg) > ::get_index(func_index));
+                    (arg.*look_up_namespace::get_meta_obj<decltype(*arg)>(func_name))(*arg2);
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
@@ -264,7 +237,7 @@ namespace storage {
         }
 
         template < typename T >
-        constexpr void add_new_obj(T & input_stream, std::size_t type_index, std::string & key) {
+        constexpr void add_new_obj(T & input_stream, std::size_t type_index, const std::string & key) {
             template
             for (std::size_t index = 0; auto elem: type_reflections) {
                 if (index == type_index) {
@@ -279,23 +252,23 @@ namespace storage {
             }
 
         }
-        constexpr void dynamic_update_name_of_obj(std::string & old_name, std::string & name) {
+        constexpr void dynamic_update_name_of_obj(const std::string & old_name, const std::string & name) {
             auto it = dynamic_book_keeper_map.find(old_name);
             auto value = it -> second;
             dynamic_book_keeper_map.erase(it);
             dynamic_book_keeper_map[name] = value;
         }
-        constexpr void update_name_of_obj(std::string & old_name, std::string & name) {
+        constexpr void update_name_of_obj(const std::string & old_name,const  std::string & name) {
             auto it = book_keeper_map.find(old_name);
             auto value = it -> second;
             book_keeper_map.erase(it);
             book_keeper_map[name] = value;
         }
-        constexpr void dynamic_remove_name_of_obj(std::string & old_name, std::string & name) {
+        constexpr void dynamic_remove_name_of_obj(const std::string & old_name,const  std::string & name) {
             auto it = dynamic_book_keeper_map.find(old_name);
             dynamic_book_keeper_map.erase(it);
         }
-        constexpr void remove_name_of_obj(std::string & old_name, std::string & name) {
+        constexpr void remove_name_of_obj(const std::string & old_name,const  std::string & name) {
             auto it = book_keeper_map.find(old_name);
             book_keeper_map.erase(it);
         }
@@ -330,5 +303,6 @@ int main() {
         }, {}
     };
     std::cout<<decltype(obj)::get_type_index("int");
+    obj.call_func(0, std::string{"print"});
     return 0;
 }
