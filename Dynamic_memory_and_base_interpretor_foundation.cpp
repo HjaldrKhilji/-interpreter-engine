@@ -113,14 +113,14 @@ namespace storage {
     }
     template <typename Result_t, typename... T>
     constexpr Result_t return_name_to_index_mapping(std::variant<T...> dummy){
-        return []<typename Result_t_t, typename... T_t, std::size_t... indexes>(std::variant<T_t...> dummy,std::index_sequence<indexes...>){
+        return []<std::size_t... indexes>(std::index_sequence<indexes...>){
             return
-            Result_t_t{std::from_range,
+            Result_t{std::from_range,
                 std::array{
-                    std::pair{std::string{std::meta::display_string_of(^^T_t)}, indexes}...
+                    std::pair{std::meta::display_string_of(^^T), indexes}...
                 }
             };
-        }.template operator()<Result_t>(dummy, std::make_index_sequence<sizeof...(T)>{});
+        }.template operator()(std::make_index_sequence<sizeof...(T)>{});
     }
     template < typename T, typename T_2 >
     concept is_super_set = requires(T_2 & a) {
@@ -165,8 +165,8 @@ namespace storage {
             get_reflections(std::declval < dynamic_value_t > ())
         };
         using Type_name_to_index_map_t= Mapped_t<
-        std::string, std::size_t, std::less<std::string>,
-        std::inplace_vector < std::string, size_of_variant >,
+        std::string_view, std::size_t, std::less<std::string_view>,
+        std::inplace_vector < std::string_view, size_of_variant >,
         std::inplace_vector < std::size_t, size_of_variant >
         >;
         constexpr static inline Type_name_to_index_map_t name_to_index_map{
@@ -223,7 +223,7 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg) {
-                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])();
+                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])();
                 },
                 dynamic_book_keeping.at(obj_index)
             );
@@ -232,7 +232,7 @@ namespace storage {
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg, auto arg_2) {
-                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])(*arg_2);
+                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])(*arg_2);
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
