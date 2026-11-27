@@ -28,7 +28,8 @@
 namespace look_up_namespace {
     template < typename Type >
     constexpr auto& Internal_content_data() {
-        static constexpr auto index_data=std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked());
+        //due to a compiler bug(in gcc trunk as of 28 november 2026), I couldnt make the variable below "static constexpr auto".
+        static auto index_data=std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked());
         return index_data;
     }
     template < typename Type >
@@ -49,7 +50,7 @@ namespace look_up_namespace {
     }
     template < typename Type >
     constexpr std::meta::info get_meta_obj_string(const std::string & name) {
-        //due to a compiler bug I couldnt make the variable below "static constexpr auto".
+        //due to a compiler bug(in gcc trunk as of 28 november 2026), I couldnt make the variable below "static constexpr auto".
         auto look_up_data= []() consteval{
             std::flat_map<std::string, std::meta::info> result;
             std::ranges::for_each(std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()), [&result](auto& elem){
@@ -223,7 +224,7 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg) {
-                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])();
+                    (*arg.[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])();
                 },
                 dynamic_book_keeping.at(obj_index)
             );
@@ -232,7 +233,7 @@ namespace storage {
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg, auto arg_2) {
-                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])(*arg_2);
+                    (*arg.[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])(*arg_2);
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
@@ -241,7 +242,7 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg) {
-                    (*arg.*[:look_up_namespace::get_meta_obj_string<decltype(*arg)>(func_name):])();
+                    (*arg.[:look_up_namespace::get_meta_obj_string<decltype(*arg)>(func_name):])();
                 },
                 dynamic_book_keeping.at(obj_index)
             );
@@ -250,7 +251,7 @@ namespace storage {
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg, auto arg_2) {
-                    (*arg.*[:look_up_namespace::get_meta_obj_string<decltype(*arg)>(func_name):])(*arg_2);
+                    (*arg.[:look_up_namespace::get_meta_obj_string<decltype(*arg)>(func_name):])(*arg_2);
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
