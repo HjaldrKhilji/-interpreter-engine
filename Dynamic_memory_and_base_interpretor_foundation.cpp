@@ -27,19 +27,19 @@
 //revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace {
     template < typename Type >
-    constexpr auto& Internal_content_t() {
+    constexpr auto& Internal_content_data() {
         static constexpr auto index_data=std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked());
         return index_data;
     }
     template < typename Type >
     constexpr std::meta::info get_meta_obj(const std::size_t & index) {
         if consteval{
-            return Internal_content_t<Type>().at(index);
+            return Internal_content_data<Type>().at(index);
         }
         else{
             //for each loop:
             std::size_t i=0;
-            template for(auto& x: Internal_content_t<Type>()){
+            template for(auto& x: Internal_content_data<Type>()){
                 if(i==index){
                     return x;
                 }
@@ -61,7 +61,7 @@ namespace look_up_namespace {
             return look_up_data.at(name);
         }
         else{
-            template for(auto& x: Internal_content_t<Type>()){
+            template for(auto& x: Internal_content_data<Type>()){
                 if(std::meta::identifier_of(x)==name){
                     return x;
                 }
@@ -150,7 +150,7 @@ namespace storage {
         1,
         Types... > ::Variant_t;
     };
-    template < typename tuple_specialization, typename dynamic_t = type_folder < tuple_specialization > ::Variant_t, template < class Key_t, class T, class compare = std::less < Key_t > , class Key_cont_t = std::vector < Key_t > , class Internal_content_t<Type> = std::vector < T >> class Mapped_t = std::flat_map >
+    template < typename tuple_specialization, typename dynamic_t = type_folder < tuple_specialization > ::Variant_t, template < class Key_t, class T, class compare = std::less < Key_t > , class Key_cont_t = std::vector < Key_t > , class Internal_content_t = std::vector < T >> class Mapped_t = std::flat_map >
     requires requires(tuple_specialization a) {
         std::tuple {
             a
