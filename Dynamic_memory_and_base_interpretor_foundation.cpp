@@ -24,33 +24,32 @@
 
 #include<inplace_vector>
 
-//revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace {
+    //GCC implementations as of writing in 28 NOV are allergic to certian pieces of reflection related code, hence the following structure to overcome that allergy:
+    template <typename Type>
+    consteval std::vector<std::meta::info> get_initial_initializer() {
+        return std::meta::nonstatic_data_members_of(
+            ^^Type, std::meta::access_context::unchecked()
+        );
+    }
+    template <typename Type>
+    consteval std::flat_map<std::string_view, std::meta::info> get_map_initializer() {
+        std::flat_map<std::string_view, std::meta::info> result;
+        std::ranges::for_each(get_initial_initializer<Type>(), [&result](auto& elem){
+            result[std::meta::identifier_of(elem)]=elem;
+        });
+        return result;
+    }
+
     template < typename Type >
-    struct internal_content_for_all_interface_funcs{
-        static constexpr auto init=std::define_static_array(std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()));
-        std::vector<std::meta::info> index_data;
-        std::flat_map<std::string_view, std::meta::info> look_up_data;
-        internal_content_for_all_interface_funcs():
-        index_data{init},
-        look_up_data{[this](){
-                std::flat_map<std::string_view, std::meta::info> result;
-                std::ranges::for_each(this->index_data, [&result](auto& elem){
-                    result[std::meta::identifier_of(elem)]=elem;
-                });
-                return result;
-            }()
-        }{}
-    };
-    template < typename Type >
-    const internal_content_for_all_interface_funcs<Type> registry={};
-    template < typename Type >
-    constexpr std::meta::info& get_meta_obj(const std::size_t & index) {
-        return registry<Type>.index_data.at(index);
+    constexpr const std::meta::info& get_meta_obj(const std::size_t & index) {
+        static const std::vector<const std::meta::info> index_data{get_initial_initializer<Type>()};
+        return index_data.at(index);
     }
     template < typename Type >
     constexpr const std::meta::info& get_meta_obj(const std::string & name) {
-        return registry<Type>.look_up_data.at(name);
+        static const std::flat_map<std::string_view, std::meta::info> look_up_data{get_map_initializer()};
+        return look_up_data.at(name);
     }
 };
 namespace storage {
