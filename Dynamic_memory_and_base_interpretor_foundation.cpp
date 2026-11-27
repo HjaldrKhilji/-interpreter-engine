@@ -27,47 +27,30 @@
 //revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace {
     template < typename Type >
-    constexpr auto& Internal_content_data() {
-        //due to a compiler bug(in gcc trunk as of 28 november 2026), I couldnt make the variable below "static constexpr auto".
-        static auto index_data=std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked());
-        return index_data;
+    struct internal_content_for_all_interface_funcs{
+        static constexpr auto init=std::define_static_array(std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()));
+        std::vector<std::meta::info> index_data;
+        std::flat_map<std::string_view, std::meta::info> look_up_data;
+        internal_content_for_all_interface_funcs():
+        index_data{init},
+        look_up_data{[this](){
+                std::flat_map<std::string_view, std::meta::info> result;
+                std::ranges::for_each(this->index_data, [&result](auto& elem){
+                    result[std::meta::identifier_of(elem)]=elem;
+                });
+                return result;
+            }()
+        }{}
+    };
+    template < typename Type >
+    const internal_content_for_all_interface_funcs<Type> registry={};
+    template < typename Type >
+    constexpr std::meta::info& get_meta_obj(const std::size_t & index) {
+        return registry<Type>.index_data.at(index);
     }
     template < typename Type >
-    constexpr std::meta::info get_meta_obj(const std::size_t & index) {
-        if consteval{
-            return Internal_content_data<Type>().at(index);
-        }
-        else{
-            //for each loop:
-            std::size_t i=0;
-            template for(auto& x: Internal_content_data<Type>()){
-                if(i==index){
-                    return x;
-                }
-                i++;
-            }
-        }
-    }
-    template < typename Type >
-    constexpr std::meta::info get_meta_obj_string(const std::string & name) {
-        //due to a compiler bug(in gcc trunk as of 28 november 2026), I couldnt make the variable below "static constexpr auto".
-        auto look_up_data= []() consteval{
-            std::flat_map<std::string, std::meta::info> result;
-            std::ranges::for_each(std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()), [&result](auto& elem){
-                result[std::string{std::meta::identifier_of(elem)}]=elem;
-            });
-            return result;
-        }();    
-        if consteval{
-            return look_up_data.at(name);
-        }
-        else{
-            template for(auto& x: Internal_content_data<Type>()){
-                if(std::meta::identifier_of(x)==name){
-                    return x;
-                }
-            }
-        }
+    constexpr const std::meta::info& get_meta_obj(const std::string & name) {
+        return registry<Type>.look_up_data.at(name);
     }
 };
 namespace storage {
@@ -203,9 +186,9 @@ namespace storage {
         dynamic_book_keeper_map {
             std::from_range, book_keeper_map
         } {
-            
+
         }
-        
+
         constexpr value_type get_at_index(std::size_t index) {
             return book_keeper.at(index);
         }
@@ -224,16 +207,38 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg) {
-                    (*arg.[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])();
+                    if consteval{
+                        ((*arg).[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])();
+                    }
+                    else{
+                        std::size_t i=0;
+                        template for(auto& x: look_up_namespace::Internal_content_data<decltype(*arg)>()){
+                            if(i==func_index){
+                                (*arg.[:x:])();
+                            }
+                            i++;
+                        }
+                    }
                 },
                 dynamic_book_keeping.at(obj_index)
             );
         }
-        
+
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg, auto arg_2) {
-                    (*arg.[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])(*arg_2);
+                    if consteval{
+                        ((*arg).[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])();
+                    }
+                    else{
+                        std::size_t i=0;
+                        template for(auto& x: look_up_namespace::Internal_content_data<decltype(*arg)>()){
+                            if(i==func_index){
+                                (*arg.[:x:])(*arg_2);
+                            }
+                            i++;
+                        }
+                    }
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
@@ -242,22 +247,40 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg) {
-                    (*arg.[:look_up_namespace::get_meta_obj_string<decltype(*arg)>(func_name):])();
+                    if consteval{
+                        ((*arg).[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])();
+                    }
+                    else{
+                        template for(auto& x: look_up_namespace::Internal_content_data<decltype(arg)>()){
+                            if(std::meta::identifier_of(x)==func_name){
+                                (*arg.[:x:])();
+                            }
+                        }
+                    }
                 },
                 dynamic_book_keeping.at(obj_index)
             );
         }
-        
+
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg, auto arg_2) {
-                    (*arg.[:look_up_namespace::get_meta_obj_string<decltype(*arg)>(func_name):])(*arg_2);
+                    if consteval{
+                        (*arg.[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])(*arg_2);
+                    }
+                    else{
+                        template for(auto& x: look_up_namespace::Internal_content_data<decltype(arg)>()){
+                            if(std::meta::identifier_of(x)==func_name){
+                                (*arg.[:x:])(*arg_2);
+                            }
+                        }
+                    }
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
             );
         }
-        
+
         template < typename T >
         constexpr void add_new_obj(T & input_stream, std::size_t type_index, const std::string & key) {
             template
@@ -272,7 +295,7 @@ namespace storage {
                 }
                 index++;
             }
-            
+
         }
         constexpr void dynamic_update_name_of_obj(const std::string & old_name, const std::string & name) {
             auto it = dynamic_book_keeper_map.find(old_name);
