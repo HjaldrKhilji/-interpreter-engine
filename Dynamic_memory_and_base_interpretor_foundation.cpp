@@ -25,27 +25,43 @@
 #include<iostream>
 //revision of https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2026/p4198r0.pdf with reflections and other C++26 features
 namespace look_up_namespace {
-    template<typename Type>
-    struct internal_lookup_data{
-        static constexpr inline auto index_data=std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked());
-        static constexpr inline auto size_of_list=index_data.size();
-        static constexpr inline std::flat_map<std::string, std::meta::info, std::less<>, std::inplace_vector<std::string, size_of_list>, std::inplace_vector<std::meta::info, size_of_list>> look_up_data=
-        [](){
-            std::flat_map<std::string, std::meta::info, std::less<>, std::inplace_vector<std::string, size_of_list>, std::inplace_vector<std::meta::info, size_of_list>> result;
-            std::ranges::for_each(std::as_const(index_data), [&result](auto& elem){
-                result[std::string{std::meta::identifier_of(elem)}]=elem;
-            });
-
-            return result;
-        }();
-    };
-    template < typename Type >
-    constexpr std::meta::info get_meta_obj(const std::string & name) {
-        return internal_lookup_data<Type>::look_up_data.at(name);
-    }
     template < typename Type >
     constexpr std::meta::info get_meta_obj(const std::size_t & index) {
-        return internal_lookup_data<Type>::index_data.at(index);
+        static constexpr auto index_data=std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked());
+        if consteval{
+            return index_data.at(index);
+        }
+        else{
+            //for each loop:
+            std::size_t i=0;
+            template for(auto& x: index_data){
+                if(i==index){
+                    return x;
+                }
+                i++;
+            }
+        }
+    }
+    template < typename Type >
+    constexpr std::meta::info get_meta_obj(const std::string & name) {
+        //due to a compiler bug I couldnt make the variable below "static constexpr auto".
+        auto look_up_data= []() consteval{
+            std::flat_map<std::string, std::meta::info> result;
+            std::ranges::for_each(std::meta::nonstatic_data_members_of(^^Type, std::meta::access_context::unchecked()), [&result](auto& elem){
+                result[std::string{std::meta::identifier_of(elem)}]=elem;
+            });
+            return result;
+        }();    
+        if consteval{
+            return look_up_data.at(name);
+        }
+        else{
+            template for(auto& x: index_data){
+                if(std::meta::identifier_of(x)==name){
+                    return x;
+                }
+            }
+        }
     }
 };
 namespace storage {
@@ -181,9 +197,9 @@ namespace storage {
         dynamic_book_keeper_map {
             std::from_range, book_keeper_map
         } {
-
+            
         }
-
+        
         constexpr value_type get_at_index(std::size_t index) {
             return book_keeper.at(index);
         }
@@ -202,16 +218,16 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg) {
-                    (arg.*look_up_namespace::get_meta_obj<decltype(*arg)>(func_index))();
+                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])();
                 },
                 dynamic_book_keeping.at(obj_index)
             );
         }
-
+        
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, std::size_t func_index) {
             std::visit(
                 [func_index](auto arg, auto arg_2) {
-                    (arg.*look_up_namespace::get_meta_obj<decltype(*arg)>(func_index))(*arg2);
+                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])(*arg_2);
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
@@ -219,23 +235,23 @@ namespace storage {
         }
         constexpr void call_func(std::size_t obj_index, const std::string & func_name) {
             std::visit(
-                [func_index](auto arg) {
-                    (arg.*look_up_namespace::get_meta_obj<decltype(*arg)>(func_name))();
+                [&func_name](auto arg) {
+                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])();
                 },
                 dynamic_book_keeping.at(obj_index)
             );
         }
-
-        constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, const std::string & func_index) {
+        
+        constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, const std::string & func_name) {
             std::visit(
-                [func_index](auto arg, auto arg_2) {
-                    (arg.*look_up_namespace::get_meta_obj<decltype(*arg)>(func_name))(*arg2);
+                [&func_name](auto arg, auto arg_2) {
+                    (*arg.*[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])(*arg_2);
                 },
                 dynamic_book_keeping.at(obj_index),
                        dynamic_book_keeping.at(obj_2_index)
             );
         }
-
+        
         template < typename T >
         constexpr void add_new_obj(T & input_stream, std::size_t type_index, const std::string & key) {
             template
@@ -250,7 +266,7 @@ namespace storage {
                 }
                 index++;
             }
-
+            
         }
         constexpr void dynamic_update_name_of_obj(const std::string & old_name, const std::string & name) {
             auto it = dynamic_book_keeper_map.find(old_name);
@@ -297,12 +313,12 @@ namespace storage {
 int main() {
     //testing each interface:
     storage::runtime_indexed_tuples obj {
-        std::tuple < int, double > {
-            1,
-            2
+        std::tuple < std::string, std::string > {
+            "a1",
+            "a2"
         }, {}
     };
-    std::cout<<decltype(obj)::get_type_index("int");
+    std::cout<<decltype(obj)::get_type_index("string");
     obj.call_func(0, std::string{"print"});
     return 0;
 }
