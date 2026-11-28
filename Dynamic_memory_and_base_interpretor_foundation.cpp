@@ -251,7 +251,7 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg) {
-                    using T = std::remove_pointer_t<std::remove_cvref_t<decltype(*arg)>>;
+                    using T = std::remove_pointer_t<std::remove_cvref_t<decltype(arg)>>;
                     static constexpr auto index_data{look_up_namespace::get_initial_initializer<T>()};
                     template for(constexpr auto x: index_data){
                         if(std::meta::identifier_of(x)==func_name){
