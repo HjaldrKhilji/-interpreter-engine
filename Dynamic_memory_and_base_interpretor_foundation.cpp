@@ -27,10 +27,10 @@
 namespace look_up_namespace {
     //GCC implementations as of writing in 28 NOV are allergic to certian pieces of reflection related code, hence the following "abnormal "structure to overcome that allergy:
     template <typename Type>
-    consteval std::vector<std::meta::info> get_initial_initializer() {
-        return std::meta::nonstatic_data_members_of(
-            ^^Type, std::meta::access_context::unchecked()
-        );
+    consteval auto get_initial_initializer() {
+        return std::define_static_array(std::meta::nonstatic_data_members_of(
+            std::meta::dealias(^^Type), std::meta::access_context::unchecked()
+        ));
     }
 
 
@@ -91,7 +91,7 @@ namespace storage {
         std::array < std::meta::info, std::variant_size_v < Dummy < T... >>> type_reflections {
             std::apply([](auto & ...args) {
                 return {
-                    ^^ decltype(args)...
+                    ^^ decltype(*args)...
                 };
             }, dummy_tuple)
         };
@@ -251,8 +251,9 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg) {
-                    static constexpr auto index_data{look_up_namespace::get_initial_initializer<decltype(arg)>()};
-                    template for(auto& x: index_data){
+                    using T = std::remove_pointer_t<std::remove_cvref_t<decltype(*arg)>>;
+                    static constexpr auto index_data{look_up_namespace::get_initial_initializer<T>()};
+                    template for(constexpr auto x: index_data){
                         if(std::meta::identifier_of(x)==func_name){
                             (*arg.[:x:])();
                         }
@@ -345,6 +346,6 @@ int main() {
         }, {}
     };
     std::cout<<decltype(obj)::get_type_index("string");
-    obj.call_func(0, std::string{"print"});
+    obj.call_func(0, std::string{2});
     return 0;
 }
