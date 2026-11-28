@@ -42,13 +42,14 @@ namespace look_up_namespace {
     }
 
     template < typename Type >
-    constexpr const std::meta::info& get_meta_obj(const std::size_t & index) {
-        static const std::vector<const std::meta::info> index_data{get_initial_initializer<Type>()};
+    consteval const std::meta::info& get_meta_obj(const std::size_t index) {
+        static constexpr auto index_data{get_initial_initializer<Type>()};
         return index_data.at(index);
     }
     template < typename Type >
-    constexpr const std::meta::info& get_meta_obj(const std::string & name) {
-        static const std::flat_map<std::string_view, std::meta::info> look_up_data{get_map_initializer()};
+    consteval const std::meta::info& get_meta_obj(const std::string & name) {
+        //cant make it static sadly due to gcc allergies again:
+        auto look_up_data{get_map_initializer<Type>()};
         return look_up_data.at(name);
     }
 };
@@ -210,8 +211,9 @@ namespace storage {
                         ((*arg).[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])();
                     }
                     else{
+                        static constexpr auto index_data{look_up_namespace::get_initial_initializer<decltype(arg)>()};
                         std::size_t i=0;
-                        template for(auto& x: look_up_namespace::Internal_content_data<decltype(*arg)>()){
+                        template for(auto& x: index_data){
                             if(i==func_index){
                                 (*arg.[:x:])();
                             }
@@ -230,8 +232,9 @@ namespace storage {
                         ((*arg).[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_index):])();
                     }
                     else{
+                        static constexpr auto index_data{look_up_namespace::get_initial_initializer<decltype(arg)>()};
                         std::size_t i=0;
-                        template for(auto& x: look_up_namespace::Internal_content_data<decltype(*arg)>()){
+                        template for(auto& x: index_data){
                             if(i==func_index){
                                 (*arg.[:x:])(*arg_2);
                             }
@@ -250,7 +253,8 @@ namespace storage {
                         ((*arg).[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])();
                     }
                     else{
-                        template for(auto& x: look_up_namespace::Internal_content_data<decltype(arg)>()){
+                        static constexpr auto index_data{look_up_namespace::get_initial_initializer<decltype(arg)>()};
+                        template for(auto& x: index_data){
                             if(std::meta::identifier_of(x)==func_name){
                                 (*arg.[:x:])();
                             }
@@ -268,7 +272,8 @@ namespace storage {
                         (*arg.[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])(*arg_2);
                     }
                     else{
-                        template for(auto& x: look_up_namespace::Internal_content_data<decltype(arg)>()){
+                        static constexpr auto index_data{look_up_namespace::get_initial_initializer<decltype(arg)>()};
+                        template for(auto& x: index_data){
                             if(std::meta::identifier_of(x)==func_name){
                                 (*arg.[:x:])(*arg_2);
                             }
