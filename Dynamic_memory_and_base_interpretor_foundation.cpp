@@ -25,33 +25,35 @@
 #include<inplace_vector>
 
 namespace look_up_namespace {
-    //GCC implementations as of writing in 28 NOV are allergic to certian pieces of reflection related code, hence the following structure to overcome that allergy:
+    //GCC implementations as of writing in 28 NOV are allergic to certian pieces of reflection related code, hence the following "abnormal "structure to overcome that allergy:
     template <typename Type>
     consteval std::vector<std::meta::info> get_initial_initializer() {
         return std::meta::nonstatic_data_members_of(
             ^^Type, std::meta::access_context::unchecked()
         );
     }
-    template <typename Type>
-    consteval std::flat_map<std::string_view, std::meta::info> get_map_initializer() {
-        std::flat_map<std::string_view, std::meta::info> result;
-        std::ranges::for_each(get_initial_initializer<Type>(), [&result](auto& elem){
-            result[std::meta::identifier_of(elem)]=elem;
-        });
-        return result;
-    }
+
 
     template < typename Type >
     consteval const std::meta::info& get_meta_obj(const std::size_t index) {
         static constexpr auto index_data{get_initial_initializer<Type>()};
         return index_data.at(index);
     }
-    template < typename Type >
-    consteval const std::meta::info& get_meta_obj(const std::string & name) {
-        //cant make it static sadly due to gcc allergies again:
-        auto look_up_data{get_map_initializer<Type>()};
-        return look_up_data.at(name);
-    }
+    //not a usable optmization for compile time operations as of 28 November 2026, though its not just about optimizations, its also about having the ability to be able to change names of symbols for example assign + name to a name +, since the flat_map is fine, i could do it,but I cant show the optimizations or the extra possible feature as of now, sadly :(.
+    // template <typename Type>
+    // consteval std::flat_map<std::string_view, std::meta::info> get_map_initializer() {
+    //     std::flat_map<std::string_view, std::meta::info> result;
+    //     std::ranges::for_each(get_initial_initializer<Type>(), [&result](auto& elem){
+    //         result[std::meta::identifier_of(elem)]=elem;
+    //     });
+    //     return result;
+    // }
+    // template < typename Type >
+    // consteval const std::meta::info get_meta_obj(const std::string & name) {
+    //     //cant make it static sadly due to gcc allergies again:
+    //     auto look_up_data{get_map_initializer<Type>()};
+    //     return look_up_data.at(name);
+    // }
 };
 namespace storage {
     template < template < std::size_t N, typename... > class F, std::size_t N,
@@ -249,15 +251,10 @@ namespace storage {
         constexpr void call_func(std::size_t obj_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg) {
-                    if consteval{
-                        ((*arg).[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])();
-                    }
-                    else{
-                        static constexpr auto index_data{look_up_namespace::get_initial_initializer<decltype(arg)>()};
-                        template for(auto& x: index_data){
-                            if(std::meta::identifier_of(x)==func_name){
-                                (*arg.[:x:])();
-                            }
+                    static constexpr auto index_data{look_up_namespace::get_initial_initializer<decltype(arg)>()};
+                    template for(auto& x: index_data){
+                        if(std::meta::identifier_of(x)==func_name){
+                            (*arg.[:x:])();
                         }
                     }
                 },
@@ -265,23 +262,19 @@ namespace storage {
             );
         }
 
+
         constexpr void binary_op(std::size_t obj_index, std::size_t obj_2_index, const std::string & func_name) {
             std::visit(
                 [&func_name](auto arg, auto arg_2) {
-                    if consteval{
-                        (*arg.[:look_up_namespace::get_meta_obj<decltype(*arg)>(func_name):])(*arg_2);
-                    }
-                    else{
-                        static constexpr auto index_data{look_up_namespace::get_initial_initializer<decltype(arg)>()};
-                        template for(auto& x: index_data){
-                            if(std::meta::identifier_of(x)==func_name){
-                                (*arg.[:x:])(*arg_2);
-                            }
+                    static constexpr auto index_data{look_up_namespace::get_initial_initializer<decltype(arg)>()};
+                    template for(auto& x: index_data){
+                        if(std::meta::identifier_of(x)==func_name){
+                            (*arg.[:x:])(*arg_2);
                         }
                     }
                 },
                 dynamic_book_keeping.at(obj_index),
-                       dynamic_book_keeping.at(obj_2_index)
+                dynamic_book_keeping.at(obj_2_index)
             );
         }
 
